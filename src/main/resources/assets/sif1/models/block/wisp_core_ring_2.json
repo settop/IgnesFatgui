@@ -1,5 +1,4 @@
 {
     "loader": "forge:obj",    
-    "model": "sif1:models/block/wisp_core_ring_2.obj",	
-	"flip-v":false
+    "model": "sif1:models/block/wisp_core_ring_2.obj"
 }

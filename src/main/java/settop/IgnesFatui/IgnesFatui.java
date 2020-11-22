@@ -1,7 +1,6 @@
 package settop.IgnesFatui;
 
 import net.minecraft.block.Block;
-import net.minecraft.client.renderer.tileentity.TileEntityRenderer;
 import net.minecraft.item.BlockItem;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemGroup;
@@ -21,6 +20,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import settop.IgnesFatui.Blocks.WispCore;
 import settop.IgnesFatui.Client.Renderers.WispCoreTileRenderer;
+import settop.IgnesFatui.Items.BasicWispItem;
 import settop.IgnesFatui.TileEntities.WispCoreTileEntity;
 
 // The value here should match an entry in the META-INF/mods.toml file
@@ -28,7 +28,7 @@ import settop.IgnesFatui.TileEntities.WispCoreTileEntity;
 public class IgnesFatui
 {
     // Directly reference a log4j logger.
-    private static final Logger LOGGER = LogManager.getLogger();
+    public static final Logger LOGGER = LogManager.getLogger();
     public static final String MOD_ID = "sif1";
 
     public IgnesFatui()
@@ -101,6 +101,8 @@ public class IgnesFatui
                 ()->{ return TileEntityType.Builder.create(WispCoreTileEntity::new, WISP_CORE.get() ).build(null); });
 
         // Items
+        public static final RegistryObject<Item> WISP_ITEM = ITEMS.register("wisp", ()->{ return new BasicWispItem(); });
+
 
     }
 }

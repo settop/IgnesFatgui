@@ -72,8 +72,8 @@ public class WispCoreTileRenderer extends TileEntityRenderer<WispCoreTileEntity>
 
 
             matrixStackIn.rotate(new Quaternion(Vector3f.YP, tileEntityIn.renderTimer * 0.1f, false));
-            if(i < 3) matrixStackIn.rotate(new Quaternion(Vector3f.ZP, tileEntityIn.renderTimer * 0.33f, false));
-            if(i < 2) matrixStackIn.rotate(new Quaternion(Vector3f.XP, tileEntityIn.renderTimer * 0.66f, false));
+            if(i < 3) matrixStackIn.rotate(new Quaternion(Vector3f.ZP, tileEntityIn.renderTimer * 0.37f, false));
+            if(i < 2) matrixStackIn.rotate(new Quaternion(Vector3f.XP, tileEntityIn.renderTimer * 0.61f, false));
             if(i < 1) matrixStackIn.rotate(new Quaternion(Vector3f.YP, tileEntityIn.renderTimer, false));
 
             switch(i)
