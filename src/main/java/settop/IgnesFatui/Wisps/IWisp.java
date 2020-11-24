@@ -1,5 +1,6 @@
 package settop.IgnesFatui.Wisps;
 
+import net.minecraft.inventory.container.INamedContainerProvider;
 import net.minecraft.nbt.CompoundNBT;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.IWorld;
@@ -17,4 +18,6 @@ public interface IWisp
     String GetType();
 
     void DropItemStackIntoWorld(IWorld world);
+    INamedContainerProvider GetContainerProvider();
+    void InitFromTagData(CompoundNBT tagData);
 }

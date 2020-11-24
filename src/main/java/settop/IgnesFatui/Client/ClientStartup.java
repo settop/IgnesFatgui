@@ -1,6 +1,7 @@
 package settop.IgnesFatui.Client;
 
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.ScreenManager;
 import net.minecraft.item.Item;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
@@ -11,6 +12,8 @@ import net.minecraftforge.client.model.ModelLoader;
 import net.minecraftforge.event.RegistryEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
+import net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent;
+import settop.IgnesFatui.Client.Screens.BasicWispContainerScreen;
 import settop.IgnesFatui.IgnesFatui;
 
 import static net.minecraft.inventory.container.PlayerContainer.LOCATION_BLOCKS_TEXTURE;
@@ -36,4 +39,9 @@ public class ClientStartup
         }
     }
 
+    @SubscribeEvent
+    public static void onClientSetupEvent(FMLClientSetupEvent event)
+    {
+        ScreenManager.registerFactory(IgnesFatui.Containers.BASIC_WISP_CONTAINER, BasicWispContainerScreen::new);
+    }
 }

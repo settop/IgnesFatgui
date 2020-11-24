@@ -56,7 +56,7 @@ public class ChunkWisps
         }
     }
 
-    public synchronized Tuple<IWisp, Boolean> GetOrCreateWisp(String type, IChunk inChunk, BlockPos inPos)
+    public synchronized Tuple<IWisp, Boolean> GetOrCreateWisp(String type, IChunk inChunk, BlockPos inPos, CompoundNBT tagData)
     {
         IWisp existingWisp = wispsInChunk.get(inPos);
         if(existingWisp != null)
@@ -66,6 +66,7 @@ public class ChunkWisps
         else
         {
             IWisp newWisp = WispFactory.CreateNewWisp(type, inChunk, inPos);
+            newWisp.InitFromTagData(tagData);
             wispsInChunk.put(inPos, newWisp);
             return new Tuple(newWisp, true);
         }

@@ -54,7 +54,7 @@ public class ChunkWispData
      *
      * Return's the wisp and a boolean indicating if the wisp is a newly created one
      **/
-    public static Tuple<IWisp, Boolean> GetOrCreateWisp(String type, World inWorld, BlockPos inPos)
+    public static Tuple<IWisp, Boolean> GetOrCreateWisp(String type, World inWorld, BlockPos inPos, CompoundNBT tagData)
     {
         if(inWorld.isRemote())
         {
@@ -70,7 +70,7 @@ public class ChunkWispData
         DimensionData dimData = dimensionData.computeIfAbsent(dimension, (key)->new DimensionData());
         ChunkWisps chunkWisps = dimData.chunkData.computeIfAbsent(chunk.getPos(), (key)->new ChunkWisps());
 
-        return chunkWisps.GetOrCreateWisp(type, chunk, inPos);
+        return chunkWisps.GetOrCreateWisp(type, chunk, inPos, tagData);
     }
 
     @Mod.EventBusSubscriber( modid = IgnesFatui.MOD_ID)

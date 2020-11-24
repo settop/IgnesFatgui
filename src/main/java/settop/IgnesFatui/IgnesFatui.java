@@ -1,11 +1,13 @@
 package settop.IgnesFatui;
 
 import net.minecraft.block.Block;
+import net.minecraft.inventory.container.ContainerType;
 import net.minecraft.item.BlockItem;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemGroup;
 import net.minecraft.tileentity.TileEntityType;
 import net.minecraftforge.common.MinecraftForge;
+import net.minecraftforge.common.extensions.IForgeContainerType;
 import net.minecraftforge.event.RegistryEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.RegistryObject;
@@ -22,6 +24,7 @@ import settop.IgnesFatui.Blocks.WispCore;
 import settop.IgnesFatui.Client.Renderers.WispCoreTileRenderer;
 import settop.IgnesFatui.Items.BasicWispItem;
 import settop.IgnesFatui.TileEntities.WispCoreTileEntity;
+import settop.IgnesFatui.Wisps.BasicWispContainer;
 
 // The value here should match an entry in the META-INF/mods.toml file
 @Mod("sif1")
@@ -52,6 +55,10 @@ public class IgnesFatui
         ClientRegistry.bindTileEntityRenderer(RegistryHandler.WISP_CORE_TILE_ENTITY.get(), WispCoreTileRenderer::new );
     }
 
+    public static class Containers
+    {
+        public static ContainerType<BasicWispContainer> BASIC_WISP_CONTAINER;
+    }
 
     // You can use EventBusSubscriber to automatically subscribe events on the contained class (this is subscribing to the MOD
     // Event bus for receiving Registry Events)
@@ -74,6 +81,15 @@ public class IgnesFatui
                     (
                             new BlockItem( testBlock, new Item.Properties().group(ItemGroup.MISC) )
                     );*/
+        }
+
+
+        @SubscribeEvent
+        public static void registerContainers(final RegistryEvent.Register<ContainerType<?>> event)
+        {
+            Containers.BASIC_WISP_CONTAINER = IForgeContainerType.create(BasicWispContainer::new);
+            Containers.BASIC_WISP_CONTAINER.setRegistryName("basic_wisp_container");
+            event.getRegistry().register(Containers.BASIC_WISP_CONTAINER);
         }
     }
     public static class RegistryHandler
@@ -101,8 +117,6 @@ public class IgnesFatui
                 ()->{ return TileEntityType.Builder.create(WispCoreTileEntity::new, WISP_CORE.get() ).build(null); });
 
         // Items
-        public static final RegistryObject<Item> WISP_ITEM = ITEMS.register("wisp", ()->{ return new BasicWispItem(); });
-
-
+        public static final RegistryObject<Item> WISP_ITEM = ITEMS.register("wisp", BasicWispItem::new );
     }
 }
