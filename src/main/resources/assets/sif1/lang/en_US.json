@@ -1,3 +1,12 @@
 {
-    "block.sif1.wisp_core": "Wisp Core"
+    "block.sif1.wisp_core": "Wisp Core",
+
+    "item.sif1.wisp": "Wisp",
+    "item.sif1.wisp_provider_enhancement": "Provider Enhancement",
+
+    "container.sif1.basic_wisp_container": "Wisp",
+
+    "sif1.wisp_contents": "Enhancements",
+
+    "sif1.enhancement.provider": "Provider"
 }

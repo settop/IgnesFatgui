@@ -78,7 +78,6 @@ public class BasicWispItem extends Item
                         return ActionResultType.FAIL;  // should always be true, but just in case...
                     ServerPlayerEntity serverPlayerEntity = (ServerPlayerEntity) player;
                     NetworkHooks.openGui(serverPlayerEntity, namedContainerProvider, (packetBuffer) -> {packetBuffer.writeVarInt(2);});
-                    // (packetBuffer)->{} is just a do-nothing because we have no extra data to send
                 }
             }
             return ActionResultType.CONSUME;

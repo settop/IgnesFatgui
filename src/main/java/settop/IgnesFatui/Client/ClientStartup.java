@@ -1,18 +1,16 @@
 package settop.IgnesFatui.Client;
 
-import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.ScreenManager;
-import net.minecraft.item.Item;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
-import net.minecraftforge.client.event.ModelBakeEvent;
 import net.minecraftforge.client.event.ModelRegistryEvent;
 import net.minecraftforge.client.event.TextureStitchEvent;
 import net.minecraftforge.client.model.ModelLoader;
-import net.minecraftforge.event.RegistryEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.minecraftforge.fml.client.registry.ClientRegistry;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent;
+import settop.IgnesFatui.Client.Renderers.WispCoreTileRenderer;
 import settop.IgnesFatui.Client.Screens.BasicWispContainerScreen;
 import settop.IgnesFatui.IgnesFatui;
 
@@ -42,6 +40,8 @@ public class ClientStartup
     @SubscribeEvent
     public static void onClientSetupEvent(FMLClientSetupEvent event)
     {
+        ClientRegistry.bindTileEntityRenderer(IgnesFatui.RegistryHandler.WISP_CORE_TILE_ENTITY.get(), WispCoreTileRenderer::new );
+
         ScreenManager.registerFactory(IgnesFatui.Containers.BASIC_WISP_CONTAINER, BasicWispContainerScreen::new);
     }
 }

@@ -203,9 +203,9 @@ public class WispCoreTileEntity extends TileEntity
     }
 
     @Override
-    public void func_230337_a_(BlockState p_230337_1_, CompoundNBT nbt)
+    public void read(BlockState state, CompoundNBT nbt)
     {
-        super.func_230337_a_ (p_230337_1_, nbt);
+        super.read (state, nbt);
 
         CompoundNBT originalBlockNBT = nbt.getCompound("RingOriginalBlocks");
 

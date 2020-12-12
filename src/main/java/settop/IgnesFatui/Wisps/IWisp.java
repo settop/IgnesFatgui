@@ -20,4 +20,5 @@ public interface IWisp
     void DropItemStackIntoWorld(IWorld world);
     INamedContainerProvider GetContainerProvider();
     void InitFromTagData(CompoundNBT tagData);
+    void UpdateFromContents();
 }

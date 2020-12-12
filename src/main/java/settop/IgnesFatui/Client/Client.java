@@ -13,4 +13,9 @@ public class Client
     public static final ResourceLocation WISP_CORE_RING_2 = new ResourceLocation(IgnesFatui.MOD_ID, "block/wisp_core_ring_2");
 
     public static final ResourceLocation WISP_CORE_RING_TEX = new ResourceLocation(IgnesFatui.MOD_ID, "blocks/wisp_core_ring_test");
+
+
+    public static final int SLOT_X_SPACING = 18;
+    public static final int SLOT_Y_SPACING = 18;
+    public static final int PLAYER_INVENTORY_COLUMN_COUNT = 9;
 }

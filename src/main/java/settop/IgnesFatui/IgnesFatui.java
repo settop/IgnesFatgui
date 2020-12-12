@@ -6,25 +6,41 @@ import net.minecraft.item.BlockItem;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemGroup;
 import net.minecraft.tileentity.TileEntityType;
+import net.minecraft.util.ResourceLocation;
 import net.minecraftforge.common.MinecraftForge;
+import net.minecraftforge.common.capabilities.Capability;
+import net.minecraftforge.common.capabilities.CapabilityInject;
+import net.minecraftforge.common.capabilities.CapabilityManager;
 import net.minecraftforge.common.extensions.IForgeContainerType;
 import net.minecraftforge.event.RegistryEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.RegistryObject;
-import net.minecraftforge.fml.client.registry.ClientRegistry;
 import net.minecraftforge.fml.common.Mod;
-import net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent;
 import net.minecraftforge.fml.event.lifecycle.FMLCommonSetupEvent;
 import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
+import net.minecraftforge.fml.network.NetworkRegistry;
+import net.minecraftforge.fml.network.simple.SimpleChannel;
+import net.minecraftforge.items.CapabilityItemHandler;
 import net.minecraftforge.registries.DeferredRegister;
 import net.minecraftforge.registries.ForgeRegistries;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import settop.IgnesFatui.Blocks.WispCore;
-import settop.IgnesFatui.Client.Renderers.WispCoreTileRenderer;
+import settop.IgnesFatui.GUI.Network.GUIClientMessageHandler;
+import settop.IgnesFatui.GUI.Network.GUIServerMessageHandler;
+import settop.IgnesFatui.GUI.Network.Packets.ContainerTabSelected;
+import settop.IgnesFatui.GUI.Network.Packets.ProviderContainerDirectionChange;
 import settop.IgnesFatui.Items.BasicWispItem;
+import settop.IgnesFatui.Items.WispEnhancementItem;
 import settop.IgnesFatui.TileEntities.WispCoreTileEntity;
-import settop.IgnesFatui.Wisps.BasicWispContainer;
+import settop.IgnesFatui.GUI.BasicWispContainer;
+import settop.IgnesFatui.Wisps.Enhancements.EnhancementTypes;
+import settop.IgnesFatui.Wisps.Enhancements.IEnhancement;
+
+import java.util.Optional;
+
+import static net.minecraftforge.fml.network.NetworkDirection.PLAY_TO_CLIENT;
+import static net.minecraftforge.fml.network.NetworkDirection.PLAY_TO_SERVER;
 
 // The value here should match an entry in the META-INF/mods.toml file
 @Mod("sif1")
@@ -33,12 +49,15 @@ public class IgnesFatui
     // Directly reference a log4j logger.
     public static final Logger LOGGER = LogManager.getLogger();
     public static final String MOD_ID = "sif1";
+    public static final String MULTI_SCREEN_CHANNEL_VERSION = "1.0.0";
+    public static final SimpleChannel MULTI_SCREEN_CHANNEL = NetworkRegistry.newSimpleChannel(new ResourceLocation(MOD_ID, "multi_screen"), () -> MULTI_SCREEN_CHANNEL_VERSION,
+            MULTI_SCREEN_CHANNEL_VERSION::equals,
+            MULTI_SCREEN_CHANNEL_VERSION::equals);
 
     public IgnesFatui()
     {
         // Register the setup method for modloading
         FMLJavaModLoadingContext.get().getModEventBus().addListener(this::setup);
-        FMLJavaModLoadingContext.get().getModEventBus().addListener(this::setupClient);
 
         RegistryHandler.init();
 
@@ -48,11 +67,25 @@ public class IgnesFatui
 
     private void setup(final FMLCommonSetupEvent event)
     {
+        MULTI_SCREEN_CHANNEL.registerMessage(1, ContainerTabSelected.class,
+                ContainerTabSelected::encode, ContainerTabSelected::decode,
+                GUIServerMessageHandler::OnMessageReceived,
+                Optional.of(PLAY_TO_SERVER));
+        MULTI_SCREEN_CHANNEL.registerMessage(2, ProviderContainerDirectionChange.class,
+                ProviderContainerDirectionChange::encode, ProviderContainerDirectionChange::decode,
+                GUIServerMessageHandler::OnMessageReceived,
+                Optional.of(PLAY_TO_SERVER));
+
+        CapabilityManager.INSTANCE.register(
+                IEnhancement.class,
+                new WispEnhancementItem.CapabilityProviderEnhancementStorage(),
+                ()->null);
     }
 
-    private void setupClient(final FMLClientSetupEvent event)
+    public static class Capabilities
     {
-        ClientRegistry.bindTileEntityRenderer(RegistryHandler.WISP_CORE_TILE_ENTITY.get(), WispCoreTileRenderer::new );
+        @CapabilityInject(IEnhancement.class)
+        public static Capability<IEnhancement> CAPABILITY_ENHANCEMENT = null;
     }
 
     public static class Containers
@@ -87,7 +120,7 @@ public class IgnesFatui
         @SubscribeEvent
         public static void registerContainers(final RegistryEvent.Register<ContainerType<?>> event)
         {
-            Containers.BASIC_WISP_CONTAINER = IForgeContainerType.create(BasicWispContainer::new);
+            Containers.BASIC_WISP_CONTAINER = IForgeContainerType.create(BasicWispContainer::CreateMultiScreenContainer);
             Containers.BASIC_WISP_CONTAINER.setRegistryName("basic_wisp_container");
             event.getRegistry().register(Containers.BASIC_WISP_CONTAINER);
         }
@@ -118,5 +151,6 @@ public class IgnesFatui
 
         // Items
         public static final RegistryObject<Item> WISP_ITEM = ITEMS.register("wisp", BasicWispItem::new );
+        public static final RegistryObject<Item> WISP_PROVIDER_ENHANCEMENT_ITEM = ITEMS.register("wisp_provider_enhancement", () -> new WispEnhancementItem(EnhancementTypes.PROVIDER) );
     }
 }

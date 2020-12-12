@@ -32,7 +32,7 @@ public class WispCore extends Block implements IForgeBlock
         CORE_COMPLETE;
 
         @Override
-        public String func_176610_l()
+        public String getString()
         {
             switch(this)
             {

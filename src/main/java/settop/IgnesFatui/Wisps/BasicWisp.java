@@ -1,31 +1,31 @@
 package settop.IgnesFatui.Wisps;
 
-import net.minecraft.block.Block;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.entity.player.PlayerInventory;
 import net.minecraft.inventory.container.Container;
 import net.minecraft.inventory.container.INamedContainerProvider;
-import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.CompoundNBT;
-import net.minecraft.nbt.ListNBT;
-import net.minecraft.nbt.NBTUtil;
-import net.minecraft.util.IItemProvider;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.text.ITextComponent;
 import net.minecraft.util.text.TranslationTextComponent;
 import net.minecraft.world.IWorld;
 import net.minecraft.world.World;
 import net.minecraft.world.chunk.IChunk;
+import settop.IgnesFatui.GUI.BasicWispContainer;
+import settop.IgnesFatui.GUI.MultiScreenContainer;
 import settop.IgnesFatui.IgnesFatui;
-import settop.IgnesFatui.Items.BasicWispItem;
+import settop.IgnesFatui.Items.WispEnhancementItem;
 import settop.IgnesFatui.Utils.Utils;
+import settop.IgnesFatui.Wisps.Enhancements.IEnhancement;
 
-import java.lang.ref.WeakReference;
+import java.util.ArrayList;
 
 public class BasicWisp extends WispBase implements INamedContainerProvider
 {
     private BasicWispContents contents = new BasicWispContents(2);
+    private ArrayList<IEnhancement> enhancements;
+
 
     public BasicWisp()
     {
@@ -55,6 +55,7 @@ public class BasicWisp extends WispBase implements INamedContainerProvider
     {
         super.Load(chunk, nbt);
         contents.read(nbt, "inv");
+        UpdateFromContents();
     }
 
     @Override
@@ -88,6 +89,31 @@ public class BasicWisp extends WispBase implements INamedContainerProvider
             return;
         }
         contents.read(tagData, "inv");
+        UpdateFromContents();
+    }
+
+    @Override
+    public void UpdateFromContents()
+    {
+        enhancements = new ArrayList<>();
+        for(int i = 0; i < contents.getSizeInventory(); ++i)
+        {
+            ItemStack contentsItem = contents.getStackInSlot(i);
+            if(contentsItem == null || contentsItem.isEmpty())
+            {
+                continue;
+            }
+
+            if(contentsItem.getItem() instanceof WispEnhancementItem)
+            {
+                IEnhancement newEnhancement = contentsItem.getCapability(IgnesFatui.Capabilities.CAPABILITY_ENHANCEMENT).resolve().get();
+                enhancements.add(newEnhancement);
+            }
+            else
+            {
+                IgnesFatui.LOGGER.warn("Unrecognised wisp enhancement");
+            }
+        }
     }
 
     // From INamedContainerProvider
@@ -100,6 +126,8 @@ public class BasicWisp extends WispBase implements INamedContainerProvider
     @Override
     public Container createMenu(int p_createMenu_1_, PlayerInventory p_createMenu_2_, PlayerEntity p_createMenu_3_)
     {
-        return new BasicWispContainer(p_createMenu_1_, p_createMenu_2_, contents);
+        MultiScreenContainer container = BasicWispContainer.CreateMultiScreenContainer(p_createMenu_1_, p_createMenu_2_, contents, this);
+
+        return container;
     }
 }
