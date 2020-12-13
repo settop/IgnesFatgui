@@ -4,10 +4,19 @@ import com.mojang.blaze3d.matrix.MatrixStack;
 import com.mojang.blaze3d.platform.GlStateManager;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.sun.org.apache.xml.internal.utils.IntVector;
+import net.minecraft.block.BlockState;
+import net.minecraft.block.Blocks;
+import net.minecraft.block.FurnaceBlock;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.FontRenderer;
 import net.minecraft.client.gui.widget.button.AbstractButton;
 import net.minecraft.client.gui.widget.button.CheckboxButton;
+import net.minecraft.client.renderer.model.BakedQuad;
+import net.minecraft.client.renderer.model.IBakedModel;
+import net.minecraft.client.renderer.model.ModelResourceLocation;
+import net.minecraft.client.renderer.texture.TextureAtlasSprite;
+import net.minecraft.inventory.container.PlayerContainer;
+import net.minecraft.util.ColorHelper;
 import net.minecraft.util.Direction;
 import net.minecraft.util.IntArray;
 import net.minecraft.util.ResourceLocation;
@@ -17,6 +26,7 @@ import net.minecraft.util.text.ITextComponent;
 import net.minecraft.util.text.TranslationTextComponent;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
+import net.minecraftforge.client.model.data.EmptyModelData;
 import settop.IgnesFatui.GUI.Network.Packets.ProviderContainerDirectionChange;
 import settop.IgnesFatui.GUI.SubContainers.ProviderEnhancementSubContainer;
 import settop.IgnesFatui.IgnesFatui;
@@ -24,6 +34,7 @@ import settop.IgnesFatui.Utils.BoolArray;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Random;
 
 @OnlyIn(Dist.CLIENT)
 public class ProviderSubScreen extends SubScreen
@@ -61,16 +72,50 @@ public class ProviderSubScreen extends SubScreen
         {
             boolean isDown = GetDirectionValues().get(direction.ordinal()) != 0;
 
-            Minecraft minecraft = Minecraft.getInstance();
-            minecraft.getTextureManager().bindTexture(TEXTURE);
-            RenderSystem.enableDepthTest();
-            FontRenderer fontrenderer = minecraft.fontRenderer;
-            RenderSystem.color4f(1.0F, 1.0F, 1.0F, this.alpha);
-            RenderSystem.enableBlend();
-            RenderSystem.defaultBlendFunc();
-            RenderSystem.blendFunc(GlStateManager.SourceFactor.SRC_ALPHA, GlStateManager.DestFactor.ONE_MINUS_SRC_ALPHA);
-            blit(matrixStack, this.x, this.y, this.isFocused() ? 20.0F : 0.0F, isDown ? 20.0F : 0.0F, width, height, 64, 64);
-            this.renderBg(matrixStack, minecraft, mouseX, mouseY);
+            ProviderEnhancementSubContainer providerContainer = (ProviderEnhancementSubContainer)GetSubContainer();
+            BlockState blockState = providerContainer.GetBlockState();
+
+            IBakedModel blockModel = Minecraft.getInstance().getBlockRendererDispatcher().getModelForState(blockState);
+
+            Random random = new Random();
+            random.setSeed(42);
+            List<BakedQuad> quads = blockModel.getQuads(blockState, direction, random, EmptyModelData.INSTANCE);
+
+            if(quads != null && quads.size() == 1)
+            {
+                TextureAtlasSprite sprite = quads.get(0).getSprite();
+
+                Minecraft minecraft = Minecraft.getInstance();
+                minecraft.getTextureManager().bindTexture(sprite.getAtlasTexture().getTextureLocation());
+                RenderSystem.enableDepthTest();
+                FontRenderer fontrenderer = minecraft.fontRenderer;
+                RenderSystem.color4f(1.0F, 1.0F, 1.0F, this.alpha);
+                RenderSystem.enableBlend();
+                RenderSystem.defaultBlendFunc();
+                RenderSystem.blendFunc(GlStateManager.SourceFactor.SRC_ALPHA, GlStateManager.DestFactor.ONE_MINUS_SRC_ALPHA);
+                blit(matrixStack, this.x, this.y, 0, 20, 20, sprite );
+
+                if(isDown)
+                {
+                    int colour = ColorHelper.PackedColor.packColor(64, 0, 255, 0);
+                    fill(matrixStack, x, y, x + 20, y + 20, colour);
+                }
+
+                this.renderBg(matrixStack, minecraft, mouseX, mouseY);
+            }
+            else
+            {
+                Minecraft minecraft = Minecraft.getInstance();
+                minecraft.getTextureManager().bindTexture(TEXTURE);
+                RenderSystem.enableDepthTest();
+                FontRenderer fontrenderer = minecraft.fontRenderer;
+                RenderSystem.color4f(1.0F, 1.0F, 1.0F, this.alpha);
+                RenderSystem.enableBlend();
+                RenderSystem.defaultBlendFunc();
+                RenderSystem.blendFunc(GlStateManager.SourceFactor.SRC_ALPHA, GlStateManager.DestFactor.ONE_MINUS_SRC_ALPHA);
+                blit(matrixStack, this.x, this.y, this.isFocused() ? 20.0F : 0.0F, isDown ? 20.0F : 0.0F, width, height, 64, 64);
+                this.renderBg(matrixStack, minecraft, mouseX, mouseY);
+            }
 
         }
 

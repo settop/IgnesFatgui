@@ -1,7 +1,9 @@
 package settop.IgnesFatui.Wisps.Enhancements;
 
+import net.minecraft.block.BlockState;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.CompoundNBT;
+import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.Direction;
 import settop.IgnesFatui.GUI.SubContainers.ProviderEnhancementSubContainer;
 import settop.IgnesFatui.GUI.SubContainers.SubContainer;
@@ -18,7 +20,7 @@ public class ProviderEnhancement implements IEnhancement
         }
 
         @Override
-        public SubContainer CreateSubContainer(int xPos, int yPos) { return new ProviderEnhancementSubContainer(xPos, yPos); }
+        public SubContainer CreateSubContainer(int xPos, int yPos, BlockState blockState, TileEntity tileEntity) { return new ProviderEnhancementSubContainer(xPos, yPos, blockState, tileEntity); }
     }
     public static final Factory FACTORY = new Factory();
 

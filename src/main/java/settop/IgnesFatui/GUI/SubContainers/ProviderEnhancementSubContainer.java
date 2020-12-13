@@ -1,5 +1,7 @@
 package settop.IgnesFatui.GUI.SubContainers;
 
+import net.minecraft.block.BlockState;
+import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.Direction;
 import net.minecraft.util.IntArray;
 import settop.IgnesFatui.Client.Screens.SubScreens.ProviderSubScreen;
@@ -13,11 +15,13 @@ public class ProviderEnhancementSubContainer extends SubContainer implements IEn
 {
     private ProviderEnhancement currentEnhancement;
     private BoolArray directionsValue = new BoolArray(6);
+    private BlockState blockState;
 
-    public ProviderEnhancementSubContainer(int xPos, int yPos)
+    public ProviderEnhancementSubContainer(int xPos, int yPos, BlockState blockState, TileEntity tileEntity)
     {
         super(xPos, yPos);
         trackIntArray(directionsValue);
+        this.blockState = blockState;
     }
 
     @Override
@@ -88,4 +92,5 @@ public class ProviderEnhancementSubContainer extends SubContainer implements IEn
     {
         return directionsValue;
     }
+    public BlockState GetBlockState() { return blockState; }
 }

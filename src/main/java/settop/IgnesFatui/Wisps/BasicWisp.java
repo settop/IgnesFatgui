@@ -3,9 +3,9 @@ package settop.IgnesFatui.Wisps;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.entity.player.PlayerInventory;
 import net.minecraft.inventory.container.Container;
-import net.minecraft.inventory.container.INamedContainerProvider;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.CompoundNBT;
+import net.minecraft.network.PacketBuffer;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.text.ITextComponent;
 import net.minecraft.util.text.TranslationTextComponent;
@@ -21,7 +21,7 @@ import settop.IgnesFatui.Wisps.Enhancements.IEnhancement;
 
 import java.util.ArrayList;
 
-public class BasicWisp extends WispBase implements INamedContainerProvider
+public class BasicWisp extends WispBase
 {
     private BasicWispContents contents = new BasicWispContents(2);
     private ArrayList<IEnhancement> enhancements;
@@ -76,12 +76,6 @@ public class BasicWisp extends WispBase implements INamedContainerProvider
     }
 
     @Override
-    public INamedContainerProvider GetContainerProvider()
-    {
-        return this;
-    }
-
-    @Override
     public void InitFromTagData(CompoundNBT tagData)
     {
         if(tagData == null)
@@ -124,10 +118,17 @@ public class BasicWisp extends WispBase implements INamedContainerProvider
     }
 
     @Override
-    public Container createMenu(int p_createMenu_1_, PlayerInventory p_createMenu_2_, PlayerEntity p_createMenu_3_)
+    public Container createMenu(int windowID, PlayerInventory playerInventory, PlayerEntity player)
     {
-        MultiScreenContainer container = BasicWispContainer.CreateMultiScreenContainer(p_createMenu_1_, p_createMenu_2_, contents, this);
+        MultiScreenContainer container = BasicWispContainer.CreateContainer(windowID, playerInventory, contents, this);
 
         return container;
+    }
+
+    @Override
+    public void ContainerExtraDataWriter(PacketBuffer packetBuffer)
+    {
+        packetBuffer.writeInt(contents.getSizeInventory());
+        packetBuffer.writeBlockPos( GetPos() );
     }
 }

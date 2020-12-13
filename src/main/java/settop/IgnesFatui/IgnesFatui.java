@@ -20,13 +20,11 @@ import net.minecraftforge.fml.event.lifecycle.FMLCommonSetupEvent;
 import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
 import net.minecraftforge.fml.network.NetworkRegistry;
 import net.minecraftforge.fml.network.simple.SimpleChannel;
-import net.minecraftforge.items.CapabilityItemHandler;
 import net.minecraftforge.registries.DeferredRegister;
 import net.minecraftforge.registries.ForgeRegistries;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import settop.IgnesFatui.Blocks.WispCore;
-import settop.IgnesFatui.GUI.Network.GUIClientMessageHandler;
 import settop.IgnesFatui.GUI.Network.GUIServerMessageHandler;
 import settop.IgnesFatui.GUI.Network.Packets.ContainerTabSelected;
 import settop.IgnesFatui.GUI.Network.Packets.ProviderContainerDirectionChange;
@@ -39,7 +37,6 @@ import settop.IgnesFatui.Wisps.Enhancements.IEnhancement;
 
 import java.util.Optional;
 
-import static net.minecraftforge.fml.network.NetworkDirection.PLAY_TO_CLIENT;
 import static net.minecraftforge.fml.network.NetworkDirection.PLAY_TO_SERVER;
 
 // The value here should match an entry in the META-INF/mods.toml file
@@ -120,7 +117,7 @@ public class IgnesFatui
         @SubscribeEvent
         public static void registerContainers(final RegistryEvent.Register<ContainerType<?>> event)
         {
-            Containers.BASIC_WISP_CONTAINER = IForgeContainerType.create(BasicWispContainer::CreateMultiScreenContainer);
+            Containers.BASIC_WISP_CONTAINER = IForgeContainerType.create(BasicWispContainer::CreateContainer);
             Containers.BASIC_WISP_CONTAINER.setRegistryName("basic_wisp_container");
             event.getRegistry().register(Containers.BASIC_WISP_CONTAINER);
         }

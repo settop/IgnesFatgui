@@ -70,15 +70,11 @@ public class BasicWispItem extends Item
                     //we just added it, so remove one from the stack
                     wispItemStack.shrink(1);
                 }
-                INamedContainerProvider namedContainerProvider = blocksWisp.getA().GetContainerProvider();
-                if (namedContainerProvider != null)
-                {
-                    PlayerEntity player = context.getPlayer();
-                    if (!(player instanceof ServerPlayerEntity))
-                        return ActionResultType.FAIL;  // should always be true, but just in case...
-                    ServerPlayerEntity serverPlayerEntity = (ServerPlayerEntity) player;
-                    NetworkHooks.openGui(serverPlayerEntity, namedContainerProvider, (packetBuffer) -> {packetBuffer.writeVarInt(2);});
-                }
+                PlayerEntity player = context.getPlayer();
+                if (!(player instanceof ServerPlayerEntity))
+                    return ActionResultType.FAIL;  // should always be true, but just in case...
+                ServerPlayerEntity serverPlayerEntity = (ServerPlayerEntity) player;
+                NetworkHooks.openGui(serverPlayerEntity, blocksWisp.getA(),  (packetBuffer) -> blocksWisp.getA().ContainerExtraDataWriter(packetBuffer));
             }
             return ActionResultType.CONSUME;
         }

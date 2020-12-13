@@ -1,13 +1,16 @@
 package settop.IgnesFatui.GUI;
 
+import net.minecraft.block.BlockState;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.entity.player.PlayerInventory;
 import net.minecraft.inventory.container.Slot;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.network.PacketBuffer;
+import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.IntArray;
 import net.minecraft.util.IntReferenceHolder;
+import net.minecraft.util.math.BlockPos;
 import net.minecraftforge.items.SlotItemHandler;
 import net.minecraftforge.items.wrapper.PlayerInvWrapper;
 import settop.IgnesFatui.GUI.SubContainers.*;
@@ -27,20 +30,28 @@ public class BasicWispContainer extends MultiScreenContainer implements BasicWis
 {
     private BasicWispContents wispContents;
     private IWisp parentWisp;
+    private BlockState blockState;
+    private TileEntity tileEntity;
     private IntReferenceHolder openSubContainerIndex;
     private List<SubContainer> tabbedContainers;
     private PlayerInventorySubContainer playerInvSubContainer;
     private BoolArray enhancementPresent;
 
-    public static BasicWispContainer CreateMultiScreenContainer(int id, PlayerInventory playerInventory, PacketBuffer extraData)
+    public static BasicWispContainer CreateContainer(int id, PlayerInventory playerInventory, PacketBuffer extraData)
     {
-        int contentsSize = extraData.readVarInt();
-        return new BasicWispContainer(id, playerInventory, new BasicWispContents( contentsSize ), null);
+        int contentsSize = extraData.readInt();
+        BlockPos pos = extraData.readBlockPos();
+        BlockState blockState = playerInventory.player.getEntityWorld().getBlockState(pos);
+        TileEntity tileEntity = playerInventory.player.getEntityWorld().getTileEntity(pos);
+        return new BasicWispContainer(id, playerInventory, new BasicWispContents( contentsSize ), null, blockState, tileEntity);
     }
 
-    public static BasicWispContainer CreateMultiScreenContainer(int id, PlayerInventory playerInventory, BasicWispContents inWispContents, IWisp inParentWisp)
+    public static BasicWispContainer CreateContainer(int id, PlayerInventory playerInventory, BasicWispContents inWispContents, IWisp inParentWisp)
     {
-        return new BasicWispContainer(id, playerInventory, inWispContents, inParentWisp);
+        BlockPos pos = inParentWisp.GetPos();
+        BlockState blockState = playerInventory.player.getEntityWorld().getBlockState(pos);
+        TileEntity tileEntity = playerInventory.player.getEntityWorld().getTileEntity(pos);
+        return new BasicWispContainer(id, playerInventory, inWispContents, inParentWisp, blockState, tileEntity);
     }
 
 
@@ -49,7 +60,7 @@ public class BasicWispContainer extends MultiScreenContainer implements BasicWis
     public static final int PLAYER_INVENTORY_XPOS = 8;
     public static final int PLAYER_INVENTORY_YPOS = 51;
 
-    private BasicWispContainer(int id, PlayerInventory playerInventory, BasicWispContents inWispContents, IWisp inParentWisp)
+    private BasicWispContainer(int id, PlayerInventory playerInventory, BasicWispContents inWispContents, IWisp inParentWisp, BlockState inBlockState, TileEntity inTileEntity)
     {
         super(IgnesFatui.Containers.BASIC_WISP_CONTAINER, id);
 
@@ -58,6 +69,8 @@ public class BasicWispContainer extends MultiScreenContainer implements BasicWis
 
         wispContents = inWispContents;
         parentWisp = inParentWisp;
+        blockState = inBlockState;
+        tileEntity = inTileEntity;
         openSubContainerIndex = IntReferenceHolder.single();
         openSubContainerIndex.set(0);
         enhancementPresent = new BoolArray(EnhancementTypes.NUM);
@@ -69,7 +82,7 @@ public class BasicWispContainer extends MultiScreenContainer implements BasicWis
         tabbedContainers.add(wispContentsContainer);
         for(int i = 0; i < EnhancementTypes.NUM; ++i)
         {
-            SubContainer enhancementSubContainer = EnhancementTypes.values()[i].GetFactory().CreateSubContainer(WISP_SLOT_XPOS, WISP_SLOT_YPOS);
+            SubContainer enhancementSubContainer = EnhancementTypes.values()[i].GetFactory().CreateSubContainer(WISP_SLOT_XPOS, WISP_SLOT_YPOS, blockState, tileEntity);
             enhancementSubContainer.SetActive(false);
             tabbedContainers.add(enhancementSubContainer);
         }
