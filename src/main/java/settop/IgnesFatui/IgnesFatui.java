@@ -24,12 +24,14 @@ import net.minecraftforge.registries.DeferredRegister;
 import net.minecraftforge.registries.ForgeRegistries;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import settop.IgnesFatui.Blocks.WispConnectionNode;
 import settop.IgnesFatui.Blocks.WispCore;
 import settop.IgnesFatui.GUI.Network.GUIServerMessageHandler;
 import settop.IgnesFatui.GUI.Network.Packets.ContainerTabSelected;
 import settop.IgnesFatui.GUI.Network.Packets.ProviderContainerDirectionChange;
 import settop.IgnesFatui.Items.BasicWispItem;
 import settop.IgnesFatui.Items.WispEnhancementItem;
+import settop.IgnesFatui.TileEntities.WispConnectionNodeTileEntity;
 import settop.IgnesFatui.TileEntities.WispCoreTileEntity;
 import settop.IgnesFatui.GUI.BasicWispContainer;
 import settop.IgnesFatui.Wisps.Enhancements.EnhancementTypes;
@@ -56,7 +58,10 @@ public class IgnesFatui
         // Register the setup method for modloading
         FMLJavaModLoadingContext.get().getModEventBus().addListener(this::setup);
 
-        RegistryHandler.init();
+
+        Blocks.BLOCKS.register( FMLJavaModLoadingContext.get().getModEventBus() );
+        TileEntities.TILE_ENTITIES.register( FMLJavaModLoadingContext.get().getModEventBus() );
+        Items.ITEMS.register( FMLJavaModLoadingContext.get().getModEventBus() );
 
         // Register ourselves for server and other game events we are interested in
         MinecraftForge.EVENT_BUS.register(this);
@@ -90,6 +95,7 @@ public class IgnesFatui
         public static ContainerType<BasicWispContainer> BASIC_WISP_CONTAINER;
     }
 
+
     // You can use EventBusSubscriber to automatically subscribe events on the contained class (this is subscribing to the MOD
     // Event bus for receiving Registry Events)
     @Mod.EventBusSubscriber(bus=Mod.EventBusSubscriber.Bus.MOD)
@@ -122,32 +128,37 @@ public class IgnesFatui
             event.getRegistry().register(Containers.BASIC_WISP_CONTAINER);
         }
     }
-    public static class RegistryHandler
+
+    public static class Blocks
     {
         public static final DeferredRegister<Block> BLOCKS = DeferredRegister.create(ForgeRegistries.BLOCKS, IgnesFatui.MOD_ID);
+
+        public static final RegistryObject<Block> WISP_CORE = BLOCKS.register("wisp_core", WispCore::new );
+        public static final RegistryObject<Block> WISP_CONNECTION_NODE  = BLOCKS.register("wisp_connection_node", WispConnectionNode::new );
+    }
+
+    public static class TileEntities
+    {
         public static final DeferredRegister<TileEntityType<?>> TILE_ENTITIES = DeferredRegister.create(ForgeRegistries.TILE_ENTITIES, IgnesFatui.MOD_ID);
+
+        public static final RegistryObject<TileEntityType<WispCoreTileEntity>> WISP_CORE_TILE_ENTITY = TILE_ENTITIES.register("wisp_core",
+                ()->{ return TileEntityType.Builder.create(WispCoreTileEntity::new, Blocks.WISP_CORE.get() ).build(null); });
+
+        public static final RegistryObject<TileEntityType<WispConnectionNodeTileEntity>> WISP_CONNECTION_NODE_TILE_ENTITY = TILE_ENTITIES.register("wisp_connection_node",
+                ()->{ return TileEntityType.Builder.create(WispConnectionNodeTileEntity::new, Blocks.WISP_CONNECTION_NODE.get() ).build(null); });
+    }
+
+    public static class Items
+    {
         public static final DeferredRegister<Item> ITEMS = DeferredRegister.create(ForgeRegistries.ITEMS, IgnesFatui.MOD_ID);
 
-        public static void init()
-        {
-            BLOCKS.register( FMLJavaModLoadingContext.get().getModEventBus() );
-            TILE_ENTITIES.register( FMLJavaModLoadingContext.get().getModEventBus() );
-            ITEMS.register( FMLJavaModLoadingContext.get().getModEventBus() );
-        }
-
-
-        // Blocks
-        public static final RegistryObject<Block> WISP_CORE = BLOCKS.register("wisp_core", WispCore::new );
-
         // Block Items
-        public static final RegistryObject<Item> WISP_CORE_ITEM = ITEMS.register("wisp_core", ()->{ return new BlockItem( WISP_CORE.get(), new Item.Properties().group(ItemGroup.MISC) ); });
-
-        // Tile Entities
-        public static final RegistryObject<TileEntityType<WispCoreTileEntity>> WISP_CORE_TILE_ENTITY = TILE_ENTITIES.register("wisp_core",
-                ()->{ return TileEntityType.Builder.create(WispCoreTileEntity::new, WISP_CORE.get() ).build(null); });
+        public static final RegistryObject<Item> WISP_CORE_ITEM = ITEMS.register("wisp_core", ()->{ return new BlockItem( Blocks.WISP_CORE.get(), new Item.Properties().group(ItemGroup.MISC) ); });
+        public static final RegistryObject<Item> WISP_CONNECTION_NODE_ITEM = ITEMS.register("wisp_connection_node", ()->{ return new BlockItem( Blocks.WISP_CONNECTION_NODE.get(), new Item.Properties().group(ItemGroup.MISC) ); });
 
         // Items
         public static final RegistryObject<Item> WISP_ITEM = ITEMS.register("wisp", BasicWispItem::new );
         public static final RegistryObject<Item> WISP_PROVIDER_ENHANCEMENT_ITEM = ITEMS.register("wisp_provider_enhancement", () -> new WispEnhancementItem(EnhancementTypes.PROVIDER) );
+
     }
 }

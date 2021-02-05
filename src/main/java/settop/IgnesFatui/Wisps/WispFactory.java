@@ -9,7 +9,7 @@ import javax.annotation.Nonnull;
 public class WispFactory
 {
     @Nonnull
-    public static IWisp CreateNewWisp(String type, IChunk chunk, BlockPos inPos)
+    public static WispBase CreateNewWisp(String type, IChunk chunk, BlockPos inPos)
     {
         switch (type)
         {
@@ -19,10 +19,10 @@ public class WispFactory
     }
 
     @Nonnull
-    public static IWisp LoadWisp(IChunk chunk, CompoundNBT nbt)
+    public static WispBase LoadWisp(IChunk chunk, CompoundNBT nbt)
     {
         String type = nbt.getString(WispConstants.WISP_TYPE_KEY);
-        IWisp wisp = null;
+        WispBase wisp = null;
         switch (type)
         {
             case WispConstants.BASIC_WISP: wisp = new BasicWisp(); break;

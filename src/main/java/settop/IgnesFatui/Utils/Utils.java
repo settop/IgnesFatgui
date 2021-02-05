@@ -3,6 +3,7 @@ package settop.IgnesFatui.Utils;
 import net.minecraft.entity.item.ItemEntity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.ChunkPos;
 import net.minecraft.world.World;
 
 public class Utils
@@ -19,5 +20,10 @@ public class Utils
             itementity.setDefaultPickupDelay();
             worldIn.addEntity(itementity);
         }
+    }
+
+    public static ChunkPos GetChunkPos(BlockPos blockPos)
+    {
+        return new ChunkPos(blockPos.getX() >> 4, blockPos.getZ() >> 4);
     }
 }

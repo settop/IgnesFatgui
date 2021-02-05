@@ -53,7 +53,7 @@ public class BlockEventHandler
     @SubscribeEvent
     public static void OnWispCoreRingBreak(BlockEvent.BreakEvent blockBroken)
     {
-        if(blockBroken.getState().getBlock() != IgnesFatui.RegistryHandler.WISP_CORE.get())
+        if(blockBroken.getState().getBlock() != IgnesFatui.Blocks.WISP_CORE.get())
         {
             return;
         }

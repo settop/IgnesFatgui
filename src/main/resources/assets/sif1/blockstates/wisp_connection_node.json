@@ -1,0 +1,6 @@
+{
+    "variants":
+    {
+        "": { "model": "sif1:block/wisp_connection_node" }
+    }
+}

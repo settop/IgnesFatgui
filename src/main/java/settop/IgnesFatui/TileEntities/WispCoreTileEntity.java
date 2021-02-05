@@ -5,9 +5,15 @@ import net.minecraft.nbt.CompoundNBT;
 import net.minecraft.nbt.NBTUtil;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.ResourceLocation;
+import net.minecraft.util.math.AxisAlignedBB;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.world.World;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.api.distmarker.OnlyIn;
 import settop.IgnesFatui.Blocks.WispCore;
 import settop.IgnesFatui.IgnesFatui;
+import settop.IgnesFatui.WispNetwork.WispNetwork;
+import settop.IgnesFatui.Wisps.ChunkWispData;
 
 public class WispCoreTileEntity extends TileEntity
 {
@@ -22,10 +28,11 @@ public class WispCoreTileEntity extends TileEntity
     private boolean multiBlockComplete = false;
     private boolean cachedMultiblockComplete = false;
     private BlockState ringOriginalBlocks[][][];
+    private WispNetwork network;
 
     public WispCoreTileEntity()
     {
-        super( IgnesFatui.RegistryHandler.WISP_CORE_TILE_ENTITY.get() );
+        super( IgnesFatui.TileEntities.WISP_CORE_TILE_ENTITY.get() );
     }
 
     @Override
@@ -108,7 +115,7 @@ public class WispCoreTileEntity extends TileEntity
     private void FormMultiBlock()
     {
         BlockPos myBlockPos = getPos();
-        WispCore coreBlock = (WispCore)IgnesFatui.RegistryHandler.WISP_CORE.get();
+        WispCore coreBlock = (WispCore)IgnesFatui.Blocks.WISP_CORE.get();
 
         ringOriginalBlocks = new BlockState[3][3][3];
 
@@ -133,13 +140,19 @@ public class WispCoreTileEntity extends TileEntity
                         world.setBlockState(setPos, coreBlock.getBlockState(WispCore.WispCoreType.RING));
                     }
                 }
+
+        if(!world.isRemote)
+        {
+            network = new WispNetwork(getPos());
+            ChunkWispData.RegisterWispNetwork(world, network);
+        }
         markDirty();
     }
 
     public BlockState BreakMultiBlock(BlockPos brokenPos)
     {
         BlockPos myBlockPos = getPos();
-        WispCore coreBlock = (WispCore)IgnesFatui.RegistryHandler.WISP_CORE.get();
+        WispCore coreBlock = (WispCore)IgnesFatui.Blocks.WISP_CORE.get();
         BlockPos offset = brokenPos.subtract(myBlockPos);
 
         world.setBlockState(myBlockPos, coreBlock.getBlockState(WispCore.WispCoreType.CORE));
@@ -165,6 +178,11 @@ public class WispCoreTileEntity extends TileEntity
 
                 }
 
+        if(!world.isRemote)
+        {
+            ChunkWispData.UnregisterWispNetwork(world, network);
+            network = null;
+        }
         ringOriginalBlocks = null;
         markDirty();
         return returnBlockState;
@@ -199,6 +217,12 @@ public class WispCoreTileEntity extends TileEntity
             nbt.put("RingOriginalBlocks", originalBlockNBT);
         }
 
+        if(network != null)
+        {
+            CompoundNBT networkNBT = new CompoundNBT();
+            nbt.put("Network", networkNBT);
+        }
+
         return nbt;
     }
 
@@ -229,5 +253,29 @@ public class WispCoreTileEntity extends TileEntity
         {
             ringOriginalBlocks = null;
         }
+
+        CompoundNBT networkNBT = nbt.getCompound("Network");
+        if(networkNBT != null)
+        {
+            network = new WispNetwork(getPos());
+        }
+    }
+
+    @Override
+    public void onLoad()
+    {
+        super.onLoad();
+        if(!world.isRemote && network != null)
+        {
+            ChunkWispData.RegisterWispNetwork(world, network);
+        }
+    }
+
+
+    @OnlyIn(Dist.CLIENT)
+    @Override
+    public AxisAlignedBB getRenderBoundingBox()
+    {
+        return new AxisAlignedBB(getPos().add(-1, -1, -1), getPos().add(2, 2, 2));
     }
 }

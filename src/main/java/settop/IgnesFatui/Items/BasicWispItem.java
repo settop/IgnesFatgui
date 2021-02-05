@@ -19,7 +19,7 @@ import net.minecraftforge.fluids.capability.IFluidHandler;
 import net.minecraftforge.fml.network.NetworkHooks;
 import net.minecraftforge.items.IItemHandler;
 import settop.IgnesFatui.Wisps.ChunkWispData;
-import settop.IgnesFatui.Wisps.IWisp;
+import settop.IgnesFatui.Wisps.WispBase;
 import settop.IgnesFatui.Wisps.WispConstants;
 
 import javax.annotation.Nullable;
@@ -64,7 +64,7 @@ public class BasicWispItem extends Item
             {
                 ItemStack wispItemStack = context.getItem();
                 //server side only work
-                Tuple<IWisp, Boolean> blocksWisp = ChunkWispData.GetOrCreateWisp(WispConstants.BASIC_WISP, world, context.getPos(), wispItemStack.getTag());
+                Tuple<WispBase, Boolean> blocksWisp = ChunkWispData.GetOrCreateWisp(WispConstants.BASIC_WISP, world, context.getPos(), wispItemStack.getTag());
                 if(blocksWisp.getB())
                 {
                     //we just added it, so remove one from the stack

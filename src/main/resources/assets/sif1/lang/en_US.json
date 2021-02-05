@@ -1,5 +1,6 @@
 {
     "block.sif1.wisp_core": "Wisp Core",
+    "block.sif1.wisp_connection_node": "Wisp Connector",
 
     "item.sif1.wisp": "Wisp",
     "item.sif1.wisp_provider_enhancement": "Provider Enhancement",

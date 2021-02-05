@@ -67,7 +67,7 @@ public class BasicWisp extends WispBase
     @Override
     public void DropItemStackIntoWorld(IWorld world)
     {
-        ItemStack droppedStack = new ItemStack(IgnesFatui.RegistryHandler.WISP_ITEM.get(), 1);
+        ItemStack droppedStack = new ItemStack(IgnesFatui.Items.WISP_ITEM.get(), 1);
         if(!contents.isEmpty())
         {
             droppedStack.setTagInfo("inv", contents.write());

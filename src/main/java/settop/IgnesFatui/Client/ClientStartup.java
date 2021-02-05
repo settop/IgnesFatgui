@@ -40,7 +40,7 @@ public class ClientStartup
     @SubscribeEvent
     public static void onClientSetupEvent(FMLClientSetupEvent event)
     {
-        ClientRegistry.bindTileEntityRenderer(IgnesFatui.RegistryHandler.WISP_CORE_TILE_ENTITY.get(), WispCoreTileRenderer::new );
+        ClientRegistry.bindTileEntityRenderer(IgnesFatui.TileEntities.WISP_CORE_TILE_ENTITY.get(), WispCoreTileRenderer::new );
 
         ScreenManager.registerFactory(IgnesFatui.Containers.BASIC_WISP_CONTAINER, BasicWispContainerScreen::new);
     }

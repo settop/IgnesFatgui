@@ -21,7 +21,7 @@ import settop.IgnesFatui.Wisps.BasicWispContents;
 import settop.IgnesFatui.Wisps.Enhancements.EnhancementTypes;
 import settop.IgnesFatui.Wisps.Enhancements.IEnhancement;
 import settop.IgnesFatui.Wisps.Enhancements.ProviderEnhancement;
-import settop.IgnesFatui.Wisps.IWisp;
+import settop.IgnesFatui.Wisps.WispBase;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -29,7 +29,7 @@ import java.util.List;
 public class BasicWispContainer extends MultiScreenContainer implements BasicWispContents.OnEnhancementChanged
 {
     private BasicWispContents wispContents;
-    private IWisp parentWisp;
+    private WispBase parentWisp;
     private BlockState blockState;
     private TileEntity tileEntity;
     private IntReferenceHolder openSubContainerIndex;
@@ -46,7 +46,7 @@ public class BasicWispContainer extends MultiScreenContainer implements BasicWis
         return new BasicWispContainer(id, playerInventory, new BasicWispContents( contentsSize ), null, blockState, tileEntity);
     }
 
-    public static BasicWispContainer CreateContainer(int id, PlayerInventory playerInventory, BasicWispContents inWispContents, IWisp inParentWisp)
+    public static BasicWispContainer CreateContainer(int id, PlayerInventory playerInventory, BasicWispContents inWispContents, WispBase inParentWisp)
     {
         BlockPos pos = inParentWisp.GetPos();
         BlockState blockState = playerInventory.player.getEntityWorld().getBlockState(pos);
@@ -60,7 +60,7 @@ public class BasicWispContainer extends MultiScreenContainer implements BasicWis
     public static final int PLAYER_INVENTORY_XPOS = 8;
     public static final int PLAYER_INVENTORY_YPOS = 51;
 
-    private BasicWispContainer(int id, PlayerInventory playerInventory, BasicWispContents inWispContents, IWisp inParentWisp, BlockState inBlockState, TileEntity inTileEntity)
+    private BasicWispContainer(int id, PlayerInventory playerInventory, BasicWispContents inWispContents, WispBase inParentWisp, BlockState inBlockState, TileEntity inTileEntity)
     {
         super(IgnesFatui.Containers.BASIC_WISP_CONTAINER, id);
 
