@@ -18,6 +18,7 @@ import net.minecraftforge.fml.RegistryObject;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.event.lifecycle.FMLCommonSetupEvent;
 import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
+import net.minecraftforge.fml.network.NetworkDirection;
 import net.minecraftforge.fml.network.NetworkRegistry;
 import net.minecraftforge.fml.network.simple.SimpleChannel;
 import net.minecraftforge.registries.DeferredRegister;
@@ -26,9 +27,9 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import settop.IgnesFatui.Blocks.WispConnectionNode;
 import settop.IgnesFatui.Blocks.WispCore;
+import settop.IgnesFatui.GUI.Network.GUIClientMessageHandler;
 import settop.IgnesFatui.GUI.Network.GUIServerMessageHandler;
-import settop.IgnesFatui.GUI.Network.Packets.ContainerTabSelected;
-import settop.IgnesFatui.GUI.Network.Packets.ProviderContainerDirectionChange;
+import settop.IgnesFatui.GUI.Network.Packets.*;
 import settop.IgnesFatui.Items.BasicWispItem;
 import settop.IgnesFatui.Items.WispEnhancementItem;
 import settop.IgnesFatui.TileEntities.WispConnectionNodeTileEntity;
@@ -69,14 +70,30 @@ public class IgnesFatui
 
     private void setup(final FMLCommonSetupEvent event)
     {
-        MULTI_SCREEN_CHANNEL.registerMessage(1, ContainerTabSelected.class,
-                ContainerTabSelected::encode, ContainerTabSelected::decode,
+        MULTI_SCREEN_CHANNEL.registerMessage(1, CContainerTabSelected.class,
+                CContainerTabSelected::encode, CContainerTabSelected::decode,
                 GUIServerMessageHandler::OnMessageReceived,
                 Optional.of(PLAY_TO_SERVER));
-        MULTI_SCREEN_CHANNEL.registerMessage(2, ProviderContainerDirectionChange.class,
-                ProviderContainerDirectionChange::encode, ProviderContainerDirectionChange::decode,
+        MULTI_SCREEN_CHANNEL.registerMessage(2, CSubContainerDirectionChange.class,
+                CSubContainerDirectionChange::encode, CSubContainerDirectionChange::decode,
                 GUIServerMessageHandler::OnMessageReceived,
                 Optional.of(PLAY_TO_SERVER));
+        MULTI_SCREEN_CHANNEL.registerMessage(3, CScrollWindowPacket.class,
+                CScrollWindowPacket::encode, CScrollWindowPacket::decode,
+                GUIServerMessageHandler::OnMessageReceived,
+                Optional.of(PLAY_TO_SERVER));
+        MULTI_SCREEN_CHANNEL.registerMessage(4, CSubWindowPropertyUpdatePacket.class,
+                CSubWindowPropertyUpdatePacket::encode, CSubWindowPropertyUpdatePacket::decode,
+                GUIServerMessageHandler::OnMessageReceived,
+                Optional.of(PLAY_TO_SERVER));
+        MULTI_SCREEN_CHANNEL.registerMessage(5, CSubWindowStringPropertyUpdatePacket.class,
+                CSubWindowStringPropertyUpdatePacket::encode, CSubWindowStringPropertyUpdatePacket::decode,
+                GUIServerMessageHandler::OnMessageReceived,
+                Optional.of(PLAY_TO_SERVER));
+        MULTI_SCREEN_CHANNEL.registerMessage(6, SWindowStringPropertyPacket.class,
+                SWindowStringPropertyPacket::encode, SWindowStringPropertyPacket::decode,
+                GUIClientMessageHandler::OnMessageReceived,
+                Optional.of(NetworkDirection.PLAY_TO_CLIENT));
 
         CapabilityManager.INSTANCE.register(
                 IEnhancement.class,

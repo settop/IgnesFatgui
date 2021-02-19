@@ -3,26 +3,29 @@ package settop.IgnesFatui.GUI.Network.Packets;
 import net.minecraft.network.PacketBuffer;
 import net.minecraft.util.Direction;
 
-public class ProviderContainerDirectionChange
+public class CSubContainerDirectionChange
 {
     private final int windowID;
+    private final int subWindowID;
     private final Direction direction;
     private final boolean isSet;
 
-    public ProviderContainerDirectionChange(int inWindowID, Direction inDirection, boolean inIsSet)
+    public CSubContainerDirectionChange(int inWindowID, int inSubWindowID, Direction inDirection, boolean inIsSet)
     {
         windowID = inWindowID;
+        subWindowID = inSubWindowID;
         direction = inDirection;
         isSet = inIsSet;
     }
 
-    public static ProviderContainerDirectionChange decode(PacketBuffer buf)
+    public static CSubContainerDirectionChange decode(PacketBuffer buf)
     {
         int windowID = buf.readInt();
+        int subWindowID = buf.readInt();
         int direction = buf.readInt();
         boolean isSet = buf.readBoolean();
 
-        ProviderContainerDirectionChange retval = new ProviderContainerDirectionChange(windowID, Direction.byIndex(direction), isSet);
+        CSubContainerDirectionChange retval = new CSubContainerDirectionChange(windowID, subWindowID, Direction.byIndex(direction), isSet);
 
         return retval;
     }
@@ -30,6 +33,7 @@ public class ProviderContainerDirectionChange
     public void encode(PacketBuffer buf)
     {
         buf.writeInt(windowID);
+        buf.writeInt(subWindowID);
         buf.writeInt(direction.ordinal());
         buf.writeBoolean(isSet);
     }
@@ -38,6 +42,7 @@ public class ProviderContainerDirectionChange
     {
         return windowID;
     }
+    public int GetSubWindowID(){ return subWindowID; }
     public Direction GetDirection()
     {
         return direction;

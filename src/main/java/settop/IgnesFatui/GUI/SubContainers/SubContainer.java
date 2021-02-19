@@ -8,9 +8,11 @@ import net.minecraft.util.IntReferenceHolder;
 import net.minecraft.util.NonNullList;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
+import settop.IgnesFatui.Client.Screens.MultiScreen;
 import settop.IgnesFatui.Client.Screens.SubScreens.SubScreen;
 import settop.IgnesFatui.GUI.IActivatableSlot;
 import settop.IgnesFatui.GUI.MultiScreenContainer;
+import settop.IgnesFatui.Utils.StringReferenceHolder;
 
 import java.lang.ref.WeakReference;
 import java.util.List;
@@ -19,13 +21,14 @@ public abstract class SubContainer
 {
     private WeakReference<MultiScreenContainer> parentContainer;
     private int subWindowId = -1;
-    private boolean isActive = true;
+    protected boolean isActive = true;
 
     private int xPos;
     private int yPos;
 
     public final List<Slot> inventorySlots = Lists.newArrayList();
     public final List<IntReferenceHolder> trackedIntReferences = Lists.newArrayList();
+    public final List<StringReferenceHolder> trackedStringReferences = Lists.newArrayList();
 
     protected SubContainer(int xPos, int yPos)
     {
@@ -68,6 +71,20 @@ public abstract class SubContainer
         }
     }
 
+    protected StringReferenceHolder trackStr(StringReferenceHolder strIn)
+    {
+        trackedStringReferences.add(strIn);
+        return strIn;
+    }
+
+    public void HandlePropertyUpdate(int propertyId, int value)
+    {
+    }
+
+    public void HandleStringPropertyUpdate(int propertyId, String value)
+    {
+    }
+
     public void OnClose()
     {
     }
@@ -82,5 +99,5 @@ public abstract class SubContainer
 
 
     @OnlyIn(Dist.CLIENT)
-    abstract public SubScreen CreateScreen();
+    abstract public SubScreen CreateScreen(MultiScreen<?> parentScreen);
 }

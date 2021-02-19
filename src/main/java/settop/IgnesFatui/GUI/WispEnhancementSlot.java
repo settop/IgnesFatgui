@@ -2,6 +2,8 @@ package settop.IgnesFatui.GUI;
 
 import net.minecraft.inventory.container.Slot;
 import net.minecraft.item.ItemStack;
+import net.minecraft.util.ResourceLocation;
+import settop.IgnesFatui.IgnesFatui;
 import settop.IgnesFatui.Items.WispEnhancementItem;
 import settop.IgnesFatui.Wisps.BasicWispContents;
 
@@ -12,7 +14,7 @@ public class WispEnhancementSlot extends Slot implements IActivatableSlot
     public WispEnhancementSlot(BasicWispContents contentsIn, int index, int xPosition, int yPosition)
     {
         super(contentsIn, index, xPosition, yPosition);
-    }
+     }
 
     @Override
     public boolean isItemValid(ItemStack stack)

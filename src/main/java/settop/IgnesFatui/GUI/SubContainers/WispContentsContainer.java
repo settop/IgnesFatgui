@@ -1,7 +1,9 @@
 package settop.IgnesFatui.GUI.SubContainers;
 
 import settop.IgnesFatui.Client.Client;
+import settop.IgnesFatui.Client.Screens.MultiScreen;
 import settop.IgnesFatui.Client.Screens.SubScreens.SubScreen;
+import settop.IgnesFatui.Client.Screens.SubScreens.WispContentsSubScreen;
 import settop.IgnesFatui.GUI.WispEnhancementSlot;
 import settop.IgnesFatui.Wisps.BasicWispContents;
 
@@ -17,8 +19,8 @@ public class WispContentsContainer extends SubContainer
     }
 
     @Override
-    public SubScreen CreateScreen()
+    public SubScreen CreateScreen(MultiScreen<?> parentScreen)
     {
-        return null;
+        return new WispContentsSubScreen(this, parentScreen);
     }
 }

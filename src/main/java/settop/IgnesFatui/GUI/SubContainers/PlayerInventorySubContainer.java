@@ -5,6 +5,7 @@ import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 import net.minecraftforge.items.wrapper.PlayerInvWrapper;
 import settop.IgnesFatui.Client.Client;
+import settop.IgnesFatui.Client.Screens.MultiScreen;
 import settop.IgnesFatui.Client.Screens.SubScreens.SubScreen;
 import settop.IgnesFatui.GUI.ActivatableSlotItemHandler;
 
@@ -34,7 +35,7 @@ public class PlayerInventorySubContainer extends SubContainer
 
     @Override
     @OnlyIn(Dist.CLIENT)
-    public SubScreen CreateScreen()
+    public SubScreen CreateScreen(MultiScreen<?> parentScreen)
     {
         return null;
     }

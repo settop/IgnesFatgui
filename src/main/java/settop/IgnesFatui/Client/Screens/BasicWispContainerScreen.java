@@ -2,13 +2,13 @@ package settop.IgnesFatui.Client.Screens;
 
 import com.mojang.blaze3d.matrix.MatrixStack;
 import com.mojang.blaze3d.systems.RenderSystem;
-import net.minecraft.client.gui.screen.inventory.ContainerScreen;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.widget.button.Button;
 import net.minecraft.entity.player.PlayerInventory;
-import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.text.ITextComponent;
 import net.minecraft.util.text.TranslationTextComponent;
-import settop.IgnesFatui.GUI.Network.Packets.ContainerTabSelected;
+import settop.IgnesFatui.GUI.Network.Packets.CContainerTabSelected;
+import settop.IgnesFatui.GUI.SubContainers.PlayerInventorySubContainer;
 import settop.IgnesFatui.IgnesFatui;
 import settop.IgnesFatui.GUI.BasicWispContainer;
 import settop.IgnesFatui.Wisps.BasicWispContents;
@@ -19,7 +19,39 @@ import java.util.ArrayList;
 
 public class BasicWispContainerScreen extends MultiScreen<BasicWispContainer> implements Button.IPressable
 {
-    private static final ResourceLocation BACKGROUND_TEXTURE = new ResourceLocation(IgnesFatui.MOD_ID, "textures/gui/mbe30_inventory_basic_bg.png");
+    static class TabButton extends Button
+    {
+        public static final GuiPart ACTIVE_TAB = new GuiPart(64, 0, 32, 15);
+        public static final GuiPart HOVERED_TAB = new GuiPart(96, 0, 32, 15);
+        public static final GuiPart INACTIVE_TAB = new GuiPart(0, 0, 32, 16);
+
+        public TabButton(int x, int y, int width, int height, ITextComponent title, IPressable pressedAction)
+        {
+            super(x, y, width, height, title, pressedAction);
+        }
+        public TabButton(int x, int y, int width, int height, ITextComponent title, IPressable pressedAction, ITooltip onTooltip)
+        {
+            super(x, y, width, height, title, pressedAction, onTooltip);
+        }
+
+        @Override
+        public void renderButton(MatrixStack matrixStack, int mouseX, int mouseY, float partialTicks)
+        {
+            Minecraft.getInstance().getTextureManager().bindTexture(GUI_PARTS_TEXTURE);
+            GuiPart renderedPart = active ? (isHovered() ? HOVERED_TAB : ACTIVE_TAB) : INACTIVE_TAB;
+
+            this.blit(matrixStack, x, y, renderedPart.uStart, renderedPart.vStart, renderedPart.width, renderedPart.height);
+            if(!active)
+            {
+                this.fillGradient(matrixStack, x + 3, y + renderedPart.height, x + renderedPart.width - 3, y + renderedPart.height + 2, BG_COLOUR, BG_COLOUR);
+            }
+            if (isHovered())
+            {
+                renderToolTip(matrixStack, mouseX, mouseY);
+            }
+        }
+    }
+
     private ArrayList<Button> tabs;
     private BasicWispContents wispContents;
 
@@ -29,8 +61,8 @@ public class BasicWispContainerScreen extends MultiScreen<BasicWispContainer> im
         wispContents = container.GetWispContents();
 
         // Set the width and height of the gui.  Should match the size of the texture!
-        xSize = 176;
-        ySize = 133;
+        xSize = 166;
+        ySize = BasicWispContainer.PLAYER_INVENTORY_YPOS + PLAYER_INVENTORY.height;
     }
 
     @Override
@@ -40,7 +72,7 @@ public class BasicWispContainerScreen extends MultiScreen<BasicWispContainer> im
         {
             if(tabs.get(i) == pressedButton)
             {
-                IgnesFatui.MULTI_SCREEN_CHANNEL.sendToServer( new ContainerTabSelected( this.container.windowId, i ));
+                IgnesFatui.MULTI_SCREEN_CHANNEL.sendToServer( new CContainerTabSelected( this.container.windowId, i ));
                 break;
             }
         }
@@ -63,13 +95,12 @@ public class BasicWispContainerScreen extends MultiScreen<BasicWispContainer> im
     {
         final float LABEL_XPOS = 5;
         final float FONT_Y_SPACING = 12;
-        final float CHEST_LABEL_YPOS = BasicWispContainer.WISP_SLOT_YPOS - FONT_Y_SPACING;
-        font.func_243248_b(matrixStack, title,
-                LABEL_XPOS, CHEST_LABEL_YPOS, Color.darkGray.getRGB());  //this.font.drawString;
 
         final float PLAYER_INV_LABEL_YPOS = BasicWispContainer.PLAYER_INVENTORY_YPOS - FONT_Y_SPACING;
         font.func_243248_b(matrixStack, playerInventory.getDisplayName(),                  ///    this.font.drawString
                 LABEL_XPOS, PLAYER_INV_LABEL_YPOS, Color.darkGray.getRGB());
+
+        super.drawGuiContainerForegroundLayer(matrixStack, mouseX, mouseY);
     }
 
 
@@ -78,15 +109,16 @@ public class BasicWispContainerScreen extends MultiScreen<BasicWispContainer> im
     protected void drawGuiContainerBackgroundLayer(MatrixStack matrixStack, float partialTicks, int mouseX, int mouseY)
     {
         RenderSystem.color4f(1.0F, 1.0F, 1.0F, 1.0F);
-        this.minecraft.getTextureManager().bindTexture(BACKGROUND_TEXTURE);   // this.minecraft.getTextureManager()
+        this.minecraft.getTextureManager().bindTexture(GUI_PARTS_TEXTURE);   // this.minecraft.getTextureManager()
 
-        // width and height are the size provided to the window when initialised after creation.
-        // xSize, ySize are the expected size of the texture-? usually seems to be left as a default.
-        // The code below is typical for vanilla containers, so I've just copied that- it appears to centre the texture within
-        //  the available window
-        int edgeSpacingX = (this.width - this.xSize) / 2;
-        int edgeSpacingY = (this.height - this.ySize) / 2;
-        this.blit(matrixStack, edgeSpacingX, edgeSpacingY, 0, 0, this.xSize, this.ySize);
+        PlayerInventorySubContainer playerContainer = container.GetPlayerInventorySubContainer();
+
+        this.fillGradient(matrixStack, guiLeft, guiTop, guiLeft + this.xSize, guiTop + this.ySize, BG_COLOUR, BG_COLOUR);
+        RenderPlayerInv(matrixStack, playerContainer.GetXPos(), playerContainer.GetYPos());
+
+        super.drawGuiContainerBackgroundLayer(matrixStack, partialTicks, mouseX, mouseY);
+
+        RenderBorder(this, matrixStack, guiLeft, guiTop, getBlitOffset(), this.xSize, this.ySize);
     }
 
     //Setup GUI
@@ -97,12 +129,12 @@ public class BasicWispContainerScreen extends MultiScreen<BasicWispContainer> im
 
         tabs = new ArrayList<>();
 
-        tabs.add(addButton( new Button(0, 0, 32, 20, new TranslationTextComponent(""), this,
+        tabs.add(addButton( new TabButton(0, 0, 32, 20, new TranslationTextComponent(""), this,
                 (Button button, MatrixStack matrix, int mouseX, int mouseY)->this.renderTooltip(matrix, new TranslationTextComponent("sif1.wisp_contents"), mouseX, mouseY)) ));
         for(int i = 0; i < EnhancementTypes.NUM; ++i)
         {
             final int j = i;
-            tabs.add(addButton( new Button(0, 0, 32, 20, new TranslationTextComponent(""), this,
+            tabs.add(addButton( new TabButton(0, 0, 32, 20, new TranslationTextComponent(""), this,
                     (Button button, MatrixStack matrix, int mouseX, int mouseY)->this.renderTooltip(matrix, new TranslationTextComponent(EnhancementTypes.values()[j].GetName()), mouseX, mouseY))));
         }
         UpdateButtons();

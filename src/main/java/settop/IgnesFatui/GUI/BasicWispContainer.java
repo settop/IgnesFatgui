@@ -55,10 +55,10 @@ public class BasicWispContainer extends MultiScreenContainer implements BasicWis
     }
 
 
-    public static final int WISP_SLOT_XPOS = 8;
+    public static final int WISP_SLOT_XPOS = 3;
     public static final int WISP_SLOT_YPOS = 16;
-    public static final int PLAYER_INVENTORY_XPOS = 8;
-    public static final int PLAYER_INVENTORY_YPOS = 51;
+    public static final int PLAYER_INVENTORY_XPOS = 3;
+    public static final int PLAYER_INVENTORY_YPOS = 101;
 
     private BasicWispContainer(int id, PlayerInventory playerInventory, BasicWispContents inWispContents, WispBase inParentWisp, BlockState inBlockState, TileEntity inTileEntity)
     {
@@ -82,7 +82,7 @@ public class BasicWispContainer extends MultiScreenContainer implements BasicWis
         tabbedContainers.add(wispContentsContainer);
         for(int i = 0; i < EnhancementTypes.NUM; ++i)
         {
-            SubContainer enhancementSubContainer = EnhancementTypes.values()[i].GetFactory().CreateSubContainer(WISP_SLOT_XPOS, WISP_SLOT_YPOS, blockState, tileEntity);
+            SubContainer enhancementSubContainer = EnhancementTypes.values()[i].GetFactory().CreateSubContainer(0, 0, blockState, tileEntity);
             enhancementSubContainer.SetActive(false);
             tabbedContainers.add(enhancementSubContainer);
         }
@@ -213,6 +213,11 @@ public class BasicWispContainer extends MultiScreenContainer implements BasicWis
     public SubContainer GetEnhancementSubContainer(EnhancementTypes enhancementType)
     {
         return tabbedContainers.get(enhancementType.ordinal() + 1);
+    }
+
+    public PlayerInventorySubContainer GetPlayerInventorySubContainer()
+    {
+        return playerInvSubContainer;
     }
 
     public boolean IsTabActive(int index)
