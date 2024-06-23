@@ -1,11 +1,8 @@
 package settop.IgnesFatui.Wisps;
 
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.BlockRayTraceResult;
-import net.minecraft.util.math.RayTraceContext;
-import net.minecraft.util.math.RayTraceResult;
-import net.minecraft.util.math.vector.Vector3d;
-import net.minecraft.world.World;
+import net.minecraft.core.BlockPos;
+import net.minecraft.world.level.Level;
+import org.joml.Vector3d;
 import settop.IgnesFatui.IgnesFatui;
 import settop.IgnesFatui.WispNetwork.WispNetwork;
 
@@ -67,9 +64,9 @@ public class WispNode implements IWispAddListener
     }
 
     @Override
-    public void WispObjAdded(World world, BlockPos pos, Object obj)
+    public void WispObjAdded(Level level, BlockPos pos, Object obj)
     {
-        if(CanConnectToPos(world, pos, autoConnectRange))
+        if(CanConnectToPos(level, pos, autoConnectRange))
         {
             if(obj instanceof WispNode)
             {
@@ -108,7 +105,7 @@ public class WispNode implements IWispAddListener
         wisp.connections.add(this);
         if(connectedNetwork != null && connectedNetwork.get() != null)
         {
-            connectedNetwork.get().AddWispNodeConnection(this, wisp);
+            //connectedNetwork.get().AddWispNodeConnection(this, wisp);
         }
     }
 
@@ -118,15 +115,16 @@ public class WispNode implements IWispAddListener
         wisp.connections.remove(this);
         if(connectedNetwork != null && connectedNetwork.get() != null)
         {
-            connectedNetwork.get().RemoveWispNodeConnection(this, wisp);
+            //connectedNetwork.get().RemoveWispNodeConnection(this, wisp);
         }
     }
 
-    public boolean CanConnectToPos(World world, BlockPos target, int connectionRange)
+    public boolean CanConnectToPos(Level level, BlockPos target, int connectionRange)
     {
+        /*
         double range = (connectionRange * connectionRange) + 0.01;
 
-        if(target.distanceSq(pos.getX(), pos.getY(), pos.getZ(), false) > range)
+        if(target.distSqr(pos) > range)
         {
             //too far
             return false;
@@ -135,15 +133,17 @@ public class WispNode implements IWispAddListener
 
         Vector3d endPos = new Vector3d(target.getX() + 0.5, target.getY() + 0.5, target.getZ() + 0.5);
         //ToDo: Do this correctly with the proper model
-        Vector3d direction = endPos.subtract(startPos).normalize();
+        Vector3d direction = endPos.sub(startPos).normalize();
         Vector3d thisStartPos = startPos.add(direction);
 
-        BlockRayTraceResult result = world.rayTraceBlocks(new RayTraceContext(thisStartPos, endPos, RayTraceContext.BlockMode.COLLIDER, RayTraceContext.FluidMode.NONE, null));
+        BlockRayTraceResult result = level.rayTraceBlocks(new RayTraceContext(thisStartPos, endPos, RayTraceContext.BlockMode.COLLIDER, RayTraceContext.FluidMode.NONE, null));
 
         if(result.getType() == RayTraceResult.Type.MISS || result.getPos().equals(target))
         {
             return true;
         }
+
+         */
 
         return false;
     }

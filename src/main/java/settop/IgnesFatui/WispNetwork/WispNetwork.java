@@ -1,63 +1,47 @@
 package settop.IgnesFatui.WispNetwork;
 
-import net.minecraft.item.ItemStack;
-import net.minecraft.util.ResourceLocation;
-import net.minecraft.util.Tuple;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.ChunkPos;
-import net.minecraft.util.math.MathHelper;
-import settop.IgnesFatui.Wisps.WispBase;
-import settop.IgnesFatui.Wisps.WispNode;
+import net.minecraft.resources.ResourceKey;
+import net.minecraft.core.BlockPos;
+import net.minecraft.world.level.Level;
 
-import java.lang.ref.WeakReference;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
+
+
+import settop.IgnesFatui.Utils.ItemStackKey;
 
 public class WispNetwork
 {
-    private class ItemSources
+    private WispNode rootNode;
+    private final TaskManager taskManager = new TaskManager();
+    private final HashSet<WispNode> nodes = new HashSet<>();
+
+    private final HashMap<ItemStackKey, WispNetworkItemSources> itemSourceMap = new HashMap<ItemStackKey, WispNetworkItemSources>();
+
+    public WispNetwork(ResourceKey<Level> dimension, BlockPos pos)
     {
-        private int countCache = 0;
-        private boolean craftable = false;
-        private boolean isDirty = false;
-
-        private class WispItemSource
-        {
-            public WeakReference<WispBase> sourceWisp;
-            public int wispCountCache = 0;
-            public boolean wispCraftCache = false;
-        }
-
-        private ArrayList<WispItemSource> itemSources;
+        this.rootNode = new WispNode(dimension, pos);
+        AddNode(this.rootNode);
     }
 
-    public final BlockPos pos;
-
-    private HashMap<ItemStack, ItemSources> itemSourceMap;
-
-    private HashSet<WispNode> nodes = new HashSet<>();
-    private HashMap<WispBase, Integer> wisps = new HashMap<>();
-
-    public WispNetwork(BlockPos pos)
+    private WispNetwork()
     {
-        this.pos = pos;
+        this.rootNode = null;
     }
 
-    public BlockPos GetClosestPos(BlockPos inPos)
-    {
-        //the network is a 3x3x3 multiblock
-        //so want to test to the closest block of the multiblock
-        BlockPos offset = inPos.subtract(pos);
-
-        offset = new BlockPos(
-                MathHelper.clamp(offset.getX(), -1, 1),
-                MathHelper.clamp(offset.getY(), -1, 1),
-                MathHelper.clamp(offset.getZ(), -1, 1)
-        );
-        return pos.add(offset);
-    }
+    //public BlockPos GetClosestPos(BlockPos inPos)
+    //{
+    //    //the network is a 3x3x3 multiblock
+    //    //so want to test to the closest block of the multiblock
+    //    BlockPos offset = inPos.subtract(pos);
+    //
+    //    offset = new BlockPos(
+    //            Mth.clamp(offset.getX(), -1, 1),
+    //            Mth.clamp(offset.getY(), -1, 1),
+    //            Mth.clamp(offset.getZ(), -1, 1)
+    //    );
+    //     return pos.offset(offset);
+    //}
 
     public void AddNode(WispNode node)
     {
@@ -65,29 +49,32 @@ public class WispNetwork
         {
             return;
         }
-        for(WispBase wisp : node.connectedWisps)
-        {
-            wisps.compute(wisp, (key, v)-> v != null ? (v + 1) : 1);
-        }
-    }
-
-    public void AddWispNodeConnection(WispNode node, WispBase wisp)
-    {
-        wisps.compute(wisp, (key, v)-> v != null ? (v + 1) : 1);
-    }
-
-    public void RemoveWispNodeConnection(WispNode node, WispBase wisp)
-    {
-        wisps.compute(wisp, (key, v)-> v > 1 ? v - 1 : null);
+        node.OnConnectToNetwork(this);
     }
 
     public void RemoveNode(WispNode node)
     {
-        nodes.remove(node);
-
-        for(WispBase wisp : node.connectedWisps)
+        if(!nodes.remove(node))
         {
-            wisps.compute(wisp, (key, v)-> v > 1 ? v - 1 : null);
+            return;
         }
+        node.OnDisconnectFromNetwork(this);
+    }
+
+    public void AddTask(Task task)
+    {
+        taskManager.AddTask(task);
+    }
+
+    public void AddItemInventorySource(ItemStackKey stackKey, WispNetworkItemSources.InventoryItemSource itemSource)
+    {
+        WispNetworkItemSources itemSources = itemSourceMap.computeIfAbsent(stackKey, k->new WispNetworkItemSources());
+        itemSources.AddItemSource(itemSource);
+    }
+
+    public void RemoveItemSource(ItemStackKey stackKey, WispNetworkItemSources.InventoryItemSource source)
+    {
+        WispNetworkItemSources sources = itemSourceMap.get(stackKey);
+        sources.RemoveItemSource(source);
     }
 }
