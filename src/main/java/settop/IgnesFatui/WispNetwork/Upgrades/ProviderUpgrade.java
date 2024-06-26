@@ -55,9 +55,12 @@ public class ProviderUpgrade extends WispNodeUpgrade
     private int fastestUpdateTime = 5;
     private int maxUpdateTime = 20 * 5;
 
-    public ProviderUpgrade(@NotNull WispNode parentNode, int fastestUpdateTime, int maxUpdateTime)
+    public ProviderUpgrade()
     {
-        super(parentNode);
+        this(5, 20 * 5);
+    }
+    public ProviderUpgrade(int fastestUpdateTime, int maxUpdateTime)
+    {
         this.fastestUpdateTime = fastestUpdateTime;
         this.maxUpdateTime = maxUpdateTime;
     }
@@ -83,7 +86,7 @@ public class ProviderUpgrade extends WispNodeUpgrade
     public void LinkToInventory(Container inventory)
     {
         linkedInventory = inventory;
-        if(GetParentNode().GetConnectedNetwork() != null)
+        if(GetParentNode() != null && GetParentNode().GetConnectedNetwork() != null)
         {
             AddItemsToNetwork();
         }
@@ -92,7 +95,7 @@ public class ProviderUpgrade extends WispNodeUpgrade
     public void UnlinkFromInventory()
     {
         linkedInventory = null;
-        if(GetParentNode().GetConnectedNetwork() != null)
+        if(GetParentNode() != null && GetParentNode().GetConnectedNetwork() != null)
         {
             RemoveItemsFromNetwork();
         }
@@ -166,5 +169,10 @@ public class ProviderUpgrade extends WispNodeUpgrade
             }
         }
         return anyUpdates;
+    }
+
+    public boolean IsActive()
+    {
+        return updateTask != null && !updateTask.IsFinished();
     }
 }

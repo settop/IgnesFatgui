@@ -6,7 +6,7 @@ import java.util.ListIterator;
 
 public class TaskManager
 {
-    private static class TaskData```````````````````````````````````
+    private static class TaskData
     {
         public Task task;
         public int nextTickTime = 0;
@@ -19,7 +19,7 @@ public class TaskManager
     {
         TaskData taskData = new TaskData();
         taskData.task = task;
-        taskData.nextTickTime = currentTick + 1;
+        taskData.nextTickTime = currentTick;
 
         final int numTasks = tasks.size();
         for(int i = 0; i < numTasks; ++i)
@@ -66,6 +66,7 @@ public class TaskManager
             numTasksToTick = numTasks;
         }
 
+        int largestFinishedTaskRemainder = Integer.MIN_VALUE;
         ListIterator<TaskData> it = tasks.listIterator(numTasks);
         for(int i = 0; i < numTasksToTick; ++i)
         {
@@ -75,6 +76,7 @@ public class TaskManager
                 int timeUntilNextTick = taskData.task.Tick(currentTick - taskData.nextTickTime);
                 if(taskData.task.IsFinished())
                 {
+                    largestFinishedTaskRemainder = Integer.max(largestFinishedTaskRemainder, timeUntilNextTick);
                     it.remove();
                 }
                 else
@@ -87,10 +89,12 @@ public class TaskManager
                 break;
             }
         }
+        // can potentially improve by using a merge sort
+        // since we know we can split into two range the existing sorted range and the unsorted range of the tasks that were ticked
         tasks.sort((l, r) -> r.nextTickTime - l.nextTickTime);
         if(tasks.isEmpty())
         {
-            return 0;
+            return largestFinishedTaskRemainder == Integer.MIN_VALUE ? 0 : largestFinishedTaskRemainder;
         }
         else
         {

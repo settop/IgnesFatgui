@@ -1,48 +1,23 @@
 package settop.IgnesFatui;
 
-import net.minecraft.block.Block;
-import net.minecraft.inventory.container.ContainerType;
-import net.minecraft.item.BlockItem;
-import net.minecraft.item.Item;
-import net.minecraft.item.ItemGroup;
-import net.minecraft.tileentity.TileEntityType;
-import net.minecraft.util.ResourceLocation;
+import net.minecraft.gametest.framework.StructureUtils;
+import net.minecraft.world.item.BlockItem;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.crafting.RecipeManager;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraftforge.common.MinecraftForge;
-import net.minecraftforge.common.capabilities.Capability;
-import net.minecraftforge.common.capabilities.CapabilityInject;
-import net.minecraftforge.common.capabilities.CapabilityManager;
-import net.minecraftforge.common.extensions.IForgeContainerType;
-import net.minecraftforge.event.RegistryEvent;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
-import net.minecraftforge.fml.RegistryObject;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.event.lifecycle.FMLCommonSetupEvent;
 import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
-import net.minecraftforge.fml.network.NetworkDirection;
-import net.minecraftforge.fml.network.NetworkRegistry;
-import net.minecraftforge.fml.network.simple.SimpleChannel;
 import net.minecraftforge.registries.DeferredRegister;
 import net.minecraftforge.registries.ForgeRegistries;
+import net.minecraftforge.registries.RegistryObject;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import settop.IgnesFatui.Blocks.WispConnectionNode;
-import settop.IgnesFatui.Blocks.WispCore;
-import settop.IgnesFatui.GUI.Network.GUIClientMessageHandler;
-import settop.IgnesFatui.GUI.Network.GUIServerMessageHandler;
-import settop.IgnesFatui.GUI.Network.Packets.*;
-import settop.IgnesFatui.Items.BasicWispItem;
-import settop.IgnesFatui.Items.WispEnhancementItem;
-import settop.IgnesFatui.TileEntities.WispConnectionNodeTileEntity;
-import settop.IgnesFatui.TileEntities.WispCoreTileEntity;
-import settop.IgnesFatui.GUI.BasicWispContainer;
-import settop.IgnesFatui.Wisps.Enhancements.EnhancementTypes;
-import settop.IgnesFatui.Wisps.Enhancements.IEnhancement;
 
 import java.util.Optional;
 
-import static net.minecraftforge.fml.network.NetworkDirection.PLAY_TO_SERVER;
-
-// The value here should match an entry in the META-INF/mods.toml file
 @Mod("sif1")
 public class IgnesFatui
 {
@@ -50,9 +25,9 @@ public class IgnesFatui
     public static final Logger LOGGER = LogManager.getLogger();
     public static final String MOD_ID = "sif1";
     public static final String MULTI_SCREEN_CHANNEL_VERSION = "1.0.0";
-    public static final SimpleChannel MULTI_SCREEN_CHANNEL = NetworkRegistry.newSimpleChannel(new ResourceLocation(MOD_ID, "multi_screen"), () -> MULTI_SCREEN_CHANNEL_VERSION,
-            MULTI_SCREEN_CHANNEL_VERSION::equals,
-            MULTI_SCREEN_CHANNEL_VERSION::equals);
+    //public static final SimpleChannel MULTI_SCREEN_CHANNEL = NetworkRegistry.newSimpleChannel(new ResourceLocation(MOD_ID, "multi_screen"), () -> MULTI_SCREEN_CHANNEL_VERSION,
+    //        MULTI_SCREEN_CHANNEL_VERSION::equals,
+    //        MULTI_SCREEN_CHANNEL_VERSION::equals);
 
     public IgnesFatui()
     {
@@ -61,7 +36,7 @@ public class IgnesFatui
 
 
         Blocks.BLOCKS.register( FMLJavaModLoadingContext.get().getModEventBus() );
-        TileEntities.TILE_ENTITIES.register( FMLJavaModLoadingContext.get().getModEventBus() );
+        BlockEntities.BLOCK_ENTITIES.register( FMLJavaModLoadingContext.get().getModEventBus() );
         Items.ITEMS.register( FMLJavaModLoadingContext.get().getModEventBus() );
 
         // Register ourselves for server and other game events we are interested in
@@ -70,6 +45,7 @@ public class IgnesFatui
 
     private void setup(final FMLCommonSetupEvent event)
     {
+        /*
         MULTI_SCREEN_CHANNEL.registerMessage(1, CContainerTabSelected.class,
                 CContainerTabSelected::encode, CContainerTabSelected::decode,
                 GUIServerMessageHandler::OnMessageReceived,
@@ -99,17 +75,19 @@ public class IgnesFatui
                 IEnhancement.class,
                 new WispEnhancementItem.CapabilityProviderEnhancementStorage(),
                 ()->null);
+
+         */
     }
 
     public static class Capabilities
     {
-        @CapabilityInject(IEnhancement.class)
-        public static Capability<IEnhancement> CAPABILITY_ENHANCEMENT = null;
+        //@CapabilityInject(IEnhancement.class)
+        //public static Capability<IEnhancement> CAPABILITY_ENHANCEMENT = null;
     }
 
     public static class Containers
     {
-        public static ContainerType<BasicWispContainer> BASIC_WISP_CONTAINER;
+        //public static ContainerType<BasicWispContainer> BASIC_WISP_CONTAINER;
     }
 
 
@@ -118,22 +96,23 @@ public class IgnesFatui
     @Mod.EventBusSubscriber(bus=Mod.EventBusSubscriber.Bus.MOD)
     public static class RegistryEvents
     {
+        /*
         @SubscribeEvent
         public static void onBlocksRegistry(final RegistryEvent.Register<Block> blockRegistryEvent)
         {
-            /*blockRegistryEvent.getRegistry().registerAll
+            //blockRegistryEvent.getRegistry().registerAll
                     (
                             testBlock
-                    );*/
+                    );
         }
 
         @SubscribeEvent
         public static void onItemsRegistry(final RegistryEvent.Register<Item> itemRegistryEvent)
         {
-            /*itemRegistryEvent.getRegistry().registerAll
+            //itemRegistryEvent.getRegistry().registerAll
                     (
                             new BlockItem( testBlock, new Item.Properties().group(ItemGroup.MISC) )
-                    );*/
+                    );
         }
 
 
@@ -144,25 +123,29 @@ public class IgnesFatui
             Containers.BASIC_WISP_CONTAINER.setRegistryName("basic_wisp_container");
             event.getRegistry().register(Containers.BASIC_WISP_CONTAINER);
         }
+        */
     }
 
     public static class Blocks
     {
         public static final DeferredRegister<Block> BLOCKS = DeferredRegister.create(ForgeRegistries.BLOCKS, IgnesFatui.MOD_ID);
 
-        public static final RegistryObject<Block> WISP_CORE = BLOCKS.register("wisp_core", WispCore::new );
-        public static final RegistryObject<Block> WISP_CONNECTION_NODE  = BLOCKS.register("wisp_connection_node", WispConnectionNode::new );
+       // public static final RegistryObject<Block> WISP_CORE = BLOCKS.register("wisp_core", WispCore::new );
+        //public static final RegistryObject<Block> WISP_CONNECTION_NODE  = BLOCKS.register("wisp_connection_node", WispConnectionNode::new );
     }
 
-    public static class TileEntities
+    public static class BlockEntities
     {
-        public static final DeferredRegister<TileEntityType<?>> TILE_ENTITIES = DeferredRegister.create(ForgeRegistries.TILE_ENTITIES, IgnesFatui.MOD_ID);
+        public static final DeferredRegister<BlockEntityType<?>> BLOCK_ENTITIES = DeferredRegister.create(ForgeRegistries.BLOCK_ENTITY_TYPES, IgnesFatui.MOD_ID);
 
-        public static final RegistryObject<TileEntityType<WispCoreTileEntity>> WISP_CORE_TILE_ENTITY = TILE_ENTITIES.register("wisp_core",
-                ()->{ return TileEntityType.Builder.create(WispCoreTileEntity::new, Blocks.WISP_CORE.get() ).build(null); });
+        /*
+        public static final RegistryObject<BlockEntityType<WispCoreTileEntity>> WISP_CORE_TILE_ENTITY = BLOCK_ENTITIES.register("wisp_core",
+                ()->{ return BlockEntityType.Builder.of(WispCoreTileEntity::new, Blocks.WISP_CORE.get() ).build(null); });
 
-        public static final RegistryObject<TileEntityType<WispConnectionNodeTileEntity>> WISP_CONNECTION_NODE_TILE_ENTITY = TILE_ENTITIES.register("wisp_connection_node",
-                ()->{ return TileEntityType.Builder.create(WispConnectionNodeTileEntity::new, Blocks.WISP_CONNECTION_NODE.get() ).build(null); });
+        public static final RegistryObject<BlockEntityType<WispConnectionNodeTileEntity>> WISP_CONNECTION_NODE_TILE_ENTITY = BLOCK_ENTITIES.register("wisp_connection_node",
+                ()->{ return BlockEntityType.Builder.of(WispConnectionNodeTileEntity::new, Blocks.WISP_CONNECTION_NODE.get() ).build(null); });
+
+         */
     }
 
     public static class Items
@@ -170,12 +153,12 @@ public class IgnesFatui
         public static final DeferredRegister<Item> ITEMS = DeferredRegister.create(ForgeRegistries.ITEMS, IgnesFatui.MOD_ID);
 
         // Block Items
-        public static final RegistryObject<Item> WISP_CORE_ITEM = ITEMS.register("wisp_core", ()->{ return new BlockItem( Blocks.WISP_CORE.get(), new Item.Properties().group(ItemGroup.MISC) ); });
-        public static final RegistryObject<Item> WISP_CONNECTION_NODE_ITEM = ITEMS.register("wisp_connection_node", ()->{ return new BlockItem( Blocks.WISP_CONNECTION_NODE.get(), new Item.Properties().group(ItemGroup.MISC) ); });
+        //public static final RegistryObject<Item> WISP_CORE_ITEM = ITEMS.register("wisp_core", ()->{ return new BlockItem( Blocks.WISP_CORE.get(), new Item.Properties()/*.group(ItemGroup.MISC)*/ ); });
+        //public static final RegistryObject<Item> WISP_CONNECTION_NODE_ITEM = ITEMS.register("wisp_connection_node", ()->{ return new BlockItem( Blocks.WISP_CONNECTION_NODE.get(), new Item.Properties()/*.group(ItemGroup.MISC)*/ ); });
 
         // Items
-        public static final RegistryObject<Item> WISP_ITEM = ITEMS.register("wisp", BasicWispItem::new );
-        public static final RegistryObject<Item> WISP_PROVIDER_ENHANCEMENT_ITEM = ITEMS.register("wisp_provider_enhancement", () -> new WispEnhancementItem(EnhancementTypes.PROVIDER) );
+        //public static final RegistryObject<Item> WISP_ITEM = ITEMS.register("wisp", BasicWispItem::new );
+        //public static final RegistryObject<Item> WISP_PROVIDER_ENHANCEMENT_ITEM = ITEMS.register("wisp_provider_enhancement", () -> new WispEnhancementItem(EnhancementTypes.PROVIDER) );
 
     }
 }

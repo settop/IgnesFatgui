@@ -8,7 +8,7 @@ public class SequentialTask extends Task
 {
     private final ArrayDeque<Task> taskSequence = new ArrayDeque<>();
 
-    void QueueTask(Task task)
+    public void QueueTask(Task task)
     {
         taskSequence.offer(task);
     }
@@ -39,6 +39,6 @@ public class SequentialTask extends Task
             }
         }
         SetFinished();
-        return extraTicks;
+        return -extraTicks;
     }
 }

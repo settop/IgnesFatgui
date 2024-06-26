@@ -44,6 +44,11 @@ public class WispNode
         return connectedNetwork;
     }
 
+    public ArrayList<WispNode> GetConnectedNodes()
+    {
+        return connectedNodes;
+    }
+
     public boolean TryConnectToNode(@NotNull WispNode node)
     {
         if(connectedNetwork != null && node.connectedNetwork != null && connectedNetwork != node.connectedNetwork)
@@ -66,6 +71,9 @@ public class WispNode
             }
         }
 
+        connectedNodes.add(node);
+        node.connectedNodes.add(this);
+
         if(connectedNetwork == null && node.connectedNetwork != null)
         {
             node.connectedNetwork.AddNode(this);
@@ -74,8 +82,7 @@ public class WispNode
         {
             connectedNetwork.AddNode(node);
         }
-        connectedNodes.add(node);
-        node.connectedNodes.add(this);
+
         return true;
     }
 
@@ -93,16 +100,17 @@ public class WispNode
         }
     }
 
-    public void AddUpgrade(WispNodeUpgrade upgrade)
+    public void AddUpgrade(@NotNull WispNodeUpgrade upgrade)
     {
         upgrades.add(upgrade);
+        upgrade.OnAddToNode(this);
         if(connectedNetwork != null)
         {
             upgrade.OnParentNodeConnectToNetwork();
         }
     }
 
-    public void RemoveUpgrade(WispNodeUpgrade upgrade)
+    public void RemoveUpgrade(@NotNull WispNodeUpgrade upgrade)
     {
         if(upgrades.remove(upgrade))
         {
@@ -110,6 +118,7 @@ public class WispNode
             {
                 upgrade.OnParentNodeDisconnectFromNetwork();
             }
+            upgrade.OnRemoveFromNode(this);
         }
     }
 }

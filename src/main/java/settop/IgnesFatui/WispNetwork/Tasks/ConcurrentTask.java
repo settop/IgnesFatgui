@@ -8,7 +8,7 @@ import java.util.ArrayList;
 public class ConcurrentTask extends Task
 {
     private final TaskManager taskManager = new TaskManager();
-    private int lastTickWaitTime = 1;
+    private int lastTickWaitTime = 0;
 
     public void AddTask(Task task)
     {

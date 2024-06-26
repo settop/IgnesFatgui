@@ -5,17 +5,23 @@ import org.jetbrains.annotations.NotNull;
 
 public abstract class WispNodeUpgrade
 {
-    private final WispNode parentNode;
-
-    public WispNodeUpgrade(@NotNull WispNode parentNode)
-    {
-        this.parentNode = parentNode;
-    }
+    private WispNode parentNode;
 
     public abstract void OnParentNodeConnectToNetwork();
     public abstract void OnParentNodeDisconnectFromNetwork();
 
-    protected WispNode GetParentNode()
+    public void OnAddToNode(@NotNull WispNode parentNode)
+    {
+        this.parentNode = parentNode;
+    }
+
+    public void OnRemoveFromNode(@NotNull WispNode parentNode)
+    {
+        assert this.parentNode == parentNode;
+        this.parentNode = null;
+    }
+
+    public WispNode GetParentNode()
     {
         return parentNode;
     }

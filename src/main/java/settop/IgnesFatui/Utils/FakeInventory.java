@@ -1,17 +1,22 @@
 package settop.IgnesFatui.Utils;
 
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.inventory.IInventory;
-import net.minecraft.inventory.ItemStackHelper;
-import net.minecraft.item.ItemStack;
-import net.minecraft.nbt.CompoundNBT;
-import net.minecraft.util.NonNullList;
+import net.minecraft.core.HolderLookup;
+import net.minecraft.core.NonNullList;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.world.Container;
+import net.minecraft.world.ContainerHelper;
+import net.minecraft.world.level.block.ChestBlock;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.ItemStack;
+import org.jetbrains.annotations.NotNull;
 
-public class FakeInventory implements IInventory
+import java.util.Collections;
+
+public class FakeInventory implements Container
 {
     public static final int MAX_STACK = 1 << 30;
 
-    private NonNullList<ItemStack> stacks;
+    private final NonNullList<ItemStack> stacks;
     public final boolean includeCounts;
 
     public FakeInventory(int size, boolean includeCounts)
@@ -21,7 +26,7 @@ public class FakeInventory implements IInventory
     }
 
     @Override
-    public int getSizeInventory()
+    public int getContainerSize()
     {
         return stacks.size();
     }
@@ -40,7 +45,7 @@ public class FakeInventory implements IInventory
     }
 
     @Override
-    public ItemStack getStackInSlot(int index)
+    public @NotNull ItemStack getItem(int index)
     {
         if(index < stacks.size())
         {
@@ -50,13 +55,13 @@ public class FakeInventory implements IInventory
     }
 
     @Override
-    public ItemStack decrStackSize(int index, int count)
+    public @NotNull ItemStack removeItem(int index, int count)
     {
         return ItemStack.EMPTY;
     }
 
     @Override
-    public ItemStack removeStackFromSlot(int index)
+    public @NotNull ItemStack removeItemNoUpdate(int index)
     {
         if(index < stacks.size())
         {
@@ -66,7 +71,7 @@ public class FakeInventory implements IInventory
     }
 
     @Override
-    public void setInventorySlotContents(int index, ItemStack stack)
+    public void setItem(int index, @NotNull ItemStack stack)
     {
         if(index < stacks.size())
         {
@@ -79,33 +84,30 @@ public class FakeInventory implements IInventory
     }
 
     @Override
-    public void markDirty()
+    public void setChanged()
     {
 
     }
 
     @Override
-    public boolean isUsableByPlayer(PlayerEntity player)
+    public boolean stillValid(@NotNull Player player)
     {
         return true;
     }
 
     @Override
-    public void clear()
+    public void clearContent()
     {
-        for(int i = 0; i < stacks.size(); ++i)
-        {
-            stacks.set(i, ItemStack.EMPTY);
-        }
+        Collections.fill(stacks, ItemStack.EMPTY);
     }
 
-    public CompoundNBT Save(CompoundNBT tag)
+    public void loadAdditional(CompoundTag tag, HolderLookup.Provider lookup)
     {
-        return ItemStackHelper.saveAllItems(tag, stacks);
+        ContainerHelper.loadAllItems(tag, stacks, lookup);
     }
 
-    public void Load(CompoundNBT tag)
+    public void saveAdditional(CompoundTag tag, HolderLookup.Provider lookup)
     {
-        ItemStackHelper.loadAllItems(tag, stacks);
+        ContainerHelper.saveAllItems(tag, stacks, lookup);
     }
 }

@@ -21,7 +21,8 @@ public class WispNetwork
     public WispNetwork(ResourceKey<Level> dimension, BlockPos pos)
     {
         this.rootNode = new WispNode(dimension, pos);
-        AddNode(this.rootNode);
+        nodes.add(rootNode);
+        rootNode.OnConnectToNetwork(this);
     }
 
     private WispNetwork()
@@ -43,6 +44,11 @@ public class WispNetwork
     //     return pos.offset(offset);
     //}
 
+    public boolean TryConnectNodeToNetwork(WispNode node)
+    {
+        return rootNode.TryConnectToNode(node);
+    }
+
     public void AddNode(WispNode node)
     {
         if(!nodes.add(node))
@@ -50,6 +56,14 @@ public class WispNetwork
             return;
         }
         node.OnConnectToNetwork(this);
+
+        for(WispNode connectedNode : node.GetConnectedNodes())
+        {
+            if(connectedNode.GetConnectedNetwork() == null)
+            {
+                AddNode(connectedNode);
+            }
+        }
     }
 
     public void RemoveNode(WispNode node)

@@ -26,10 +26,7 @@ public class StringVariableArrayReferenceHolder extends StringReferenceHolder
     public void set(String value)
     {
         stringArray.clear();
-        for(String str : StringUtils.split(value, separator))
-        {
-            stringArray.add(str);
-        }
+        stringArray.addAll(Arrays.asList(StringUtils.split(value, separator)));
         isDirty = true;
     }
 
