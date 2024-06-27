@@ -4,11 +4,11 @@ import net.minecraft.world.item.ItemStack;
 
 public class ItemStackKey
 {
-    private final ItemStack stack = ItemStack.EMPTY;
+    private final ItemStack stack;
 
     public ItemStackKey(ItemStack stack)
     {
-        stack = stack.copyWithCount(1);
+        this.stack = stack.copyWithCount(1);
     }
 
     @Override

@@ -66,4 +66,7 @@ public class WispNetworkItemSources
             source.parent = null;
         }
     }
+
+    public int GetTotalCount() { return totalCount; }
+    public boolean IsEmpty() { return GetTotalCount() == 0; }
 }

@@ -6,20 +6,34 @@ import net.minecraft.world.level.Level;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 
 public class WispNode
 {
+    //path cost scaled for a node of speed 1
+    public record DestinationData(WispNode nextPathNode, float pathCost) {}
+    public static class PathData
+    {
+        public final HashMap<WispNode, DestinationData> nextNodeToDestinations = new HashMap<>();
+    }
+
     public final ResourceKey<Level> dimension;
     public final BlockPos pos;
     private WispNetwork connectedNetwork;
     private final ArrayList<WispNode> connectedNodes = new ArrayList<>();
     private final ArrayList<WispNodeUpgrade> upgrades = new ArrayList<>();
+    private final PathData pathData = new PathData();
 
     public WispNode(ResourceKey<Level> dimension, BlockPos pos)
     {
         this.dimension = dimension;
         this.pos = pos;
     }
+
+    public ResourceKey<Level> GetDimension() { return dimension; }
+    public BlockPos GetPos() { return pos; }
+    public PathData GetPathData() { return pathData; }
+    public float GetSpeed() { return 1.f; }
 
     public void OnConnectToNetwork(@NotNull WispNetwork _network)
     {

@@ -26,14 +26,14 @@ public class ProviderUpgrade extends WispNodeUpgrade
             if(UpdateItemsInNetwork())
             {
                 updatesWithoutChange = 0;
-                return fastestUpdateTime;
+                return fastestUpdateTime - extraTicks;
             }
             else
             {
                 ++updatesWithoutChange;
                 //note that sleep multiplier level takes longer to reach as the updates become slower
                 int sleepMultiplier = 1 << (updatesWithoutChange / 4);
-                return Integer.min(fastestUpdateTime * sleepMultiplier, maxUpdateTime);
+                return Integer.min(fastestUpdateTime * sleepMultiplier, maxUpdateTime) - extraTicks;
             }
         }
     }
@@ -125,7 +125,7 @@ public class ProviderUpgrade extends WispNodeUpgrade
     private void RemoveItemsFromNetwork()
     {
         WispNetwork network = GetParentNode().GetConnectedNetwork();
-        updateTask.SetFinished();
+        updateTask.SetSuccessful();
 
         itemSources.forEach(network::RemoveItemSource);
         itemSources.clear();

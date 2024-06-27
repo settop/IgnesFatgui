@@ -6,7 +6,19 @@ import java.util.ArrayDeque;
 
 public class SequentialTask extends Task
 {
+
+    public enum SubTaskFailHandling
+    {
+        CONTINUE,
+        FAIL
+    }
     private final ArrayDeque<Task> taskSequence = new ArrayDeque<>();
+    private final SubTaskFailHandling failHandling;
+
+    public SequentialTask(SubTaskFailHandling failHandling)
+    {
+        this.failHandling = failHandling;
+    }
 
     public void QueueTask(Task task)
     {
@@ -22,6 +34,11 @@ public class SequentialTask extends Task
             int nextTickWait = nextTask.Tick(extraTicks);
             if(nextTask.IsFinished())
             {
+                if(nextTask.IsFailed() && failHandling == SubTaskFailHandling.FAIL)
+                {
+                    SetFailed();
+                    return nextTickWait;
+                }
                 taskSequence.pop();
                 nextTask = taskSequence.peek();
                 if(nextTickWait <= 0)
@@ -38,7 +55,7 @@ public class SequentialTask extends Task
                 return nextTickWait;
             }
         }
-        SetFinished();
+        SetSuccessful();
         return -extraTicks;
     }
 }

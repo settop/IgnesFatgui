@@ -33,15 +33,25 @@ public class TaskManagerTester
                 int remaining = initialWaitTime - extraTicks;
                 if(remaining <= 0)
                 {
-                    SetFinished();
+                    SetSuccessful();
                 }
                 return remaining;
             }
             else
             {
-                SetFinished();
+                SetSuccessful();
                 return -extraTicks;
             }
+        }
+    }
+
+    public static class FailingTask extends Task
+    {
+        @Override
+        public int Tick(int extraTicks)
+        {
+            SetFailed();
+            return -extraTicks;
         }
     }
 
@@ -64,7 +74,7 @@ public class TaskManagerTester
     public static void TaskManagerTest_Sequential(@NotNull GameTestHelper helper)
     {
         {
-            SequentialTask sequentialTask = new SequentialTask();
+            SequentialTask sequentialTask = new SequentialTask(SequentialTask.SubTaskFailHandling.CONTINUE);
             sequentialTask.QueueTask(new WaitTask(10));
             sequentialTask.QueueTask(new WaitTask(15));
 
@@ -76,12 +86,12 @@ public class TaskManagerTester
 
             nextTick = sequentialTask.Tick(2);
             helper.assertValueEqual(nextTick, -2, "nextTick");
-            helper.assertTrue(sequentialTask.IsFinished(), "Expect sequential task to be finished after the third tick");
+            helper.assertTrue(sequentialTask.IsSuccessful(), "Expect sequential task to be successful after the third tick");
         }
         {
             TaskManager taskManager = new TaskManager();
 
-            SequentialTask sequentialTask = new SequentialTask();
+            SequentialTask sequentialTask = new SequentialTask(SequentialTask.SubTaskFailHandling.CONTINUE);
             sequentialTask.QueueTask(new WaitTask(10));
             sequentialTask.QueueTask(new WaitTask(15));
 
@@ -93,6 +103,40 @@ public class TaskManagerTester
                 helper.assertTrue(sequentialTask.IsFinished(), "wait task is not finished");
             });
         }
+    }
+
+    @GameTest(batch = "TaskManager", template = "forge:empty3x3x3")
+    public static void TaskManagerTest_Sequential_Failable(@NotNull GameTestHelper helper)
+    {
+        {
+            SequentialTask sequentialTask = new SequentialTask(SequentialTask.SubTaskFailHandling.CONTINUE);
+            sequentialTask.QueueTask(new WaitTask(10));
+            sequentialTask.QueueTask(new FailingTask());
+            sequentialTask.QueueTask(new WaitTask(15));
+
+            int nextTick = sequentialTask.Tick(0);
+            helper.assertValueEqual(nextTick, 10, "nextTick");
+
+            nextTick = sequentialTask.Tick(3);
+            helper.assertValueEqual(nextTick, 12, "nextTick");
+
+            nextTick = sequentialTask.Tick(2);
+            helper.assertValueEqual(nextTick, -2, "nextTick");
+            helper.assertTrue(sequentialTask.IsSuccessful(), "Expect sequential task to be successful after the third tick");
+        }
+        {
+            SequentialTask sequentialTask = new SequentialTask(SequentialTask.SubTaskFailHandling.FAIL);
+            sequentialTask.QueueTask(new WaitTask(10));
+            sequentialTask.QueueTask(new FailingTask());
+            sequentialTask.QueueTask(new WaitTask(15));
+
+            int nextTick = sequentialTask.Tick(0);
+            helper.assertValueEqual(nextTick, 10, "nextTick");
+
+            sequentialTask.Tick(3);
+            helper.assertTrue(sequentialTask.IsFailed(), "Expect sequential task to be failed after the third tick");
+        }
+        helper.succeed();
     }
 
     @GameTest(batch = "TaskManager", template = "forge:empty3x3x3", timeoutTicks = 30)
@@ -112,7 +156,7 @@ public class TaskManagerTester
 
             nextTick = concurrentTask.Tick(1);
             helper.assertValueEqual(nextTick, -1, "nextTick");
-            helper.assertTrue(concurrentTask.IsFinished(), "Expect concurrent task to be finished after the third tick");
+            helper.assertTrue(concurrentTask.IsSuccessful(), "Expect concurrent task to be successful after the third tick");
         }
         {
             TaskManager taskManager = new TaskManager();
@@ -142,7 +186,7 @@ public class TaskManagerTester
         rootTask.AddTask(new WaitTask(10));
         rootTask.AddTask(new WaitTask(15));
 
-        SequentialTask sequentialTask = new SequentialTask();
+        SequentialTask sequentialTask = new SequentialTask(SequentialTask.SubTaskFailHandling.CONTINUE);
         sequentialTask.QueueTask(new WaitTask(10));
         sequentialTask.QueueTask(new WaitTask(25));
         ConcurrentTask subConcurrentTask = new ConcurrentTask();

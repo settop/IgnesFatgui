@@ -22,7 +22,7 @@ public class ConcurrentTask extends Task
         lastTickWaitTime = Integer.max(nextWaitTime, 0);
         if(!taskManager.HasAnyTasks())
         {
-            SetFinished();
+            SetSuccessful();
         }
         return nextWaitTime;
     }
