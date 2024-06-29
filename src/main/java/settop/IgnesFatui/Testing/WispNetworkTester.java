@@ -53,6 +53,74 @@ public class WispNetworkTester
     }
 
     @GameTest(batch = "WispNetwork", template = "forge:empty3x3x3")
+    public static void WispNetworkTest_DisconnectNodes(@NotNull GameTestHelper helper)
+    {
+        WispNetwork wispNetwork = new WispNetwork(helper.getLevel().dimension(), new BlockPos(3, 0, 0));
+
+        // A -- B -- C -- N
+        // |    |
+        // D -- E
+
+        WispNode A = new WispNode(helper.getLevel().dimension(), new BlockPos(0, 0, 0));
+        WispNode B = new WispNode(helper.getLevel().dimension(), new BlockPos(1, 0, 0));
+        WispNode C = new WispNode(helper.getLevel().dimension(), new BlockPos(2, 0, 0));
+        WispNode D = new WispNode(helper.getLevel().dimension(), new BlockPos(0, 0, 1));
+        WispNode E = new WispNode(helper.getLevel().dimension(), new BlockPos(1, 0, 1));
+
+        A.TryConnectToNode(B);
+        A.TryConnectToNode(D);
+        B.TryConnectToNode(C);
+        B.TryConnectToNode(E);
+        D.TryConnectToNode(E);
+        wispNetwork.TryConnectNodeToNetwork(C);
+
+        helper.assertTrue(A.GetConnectedNetwork() == wispNetwork, "Expect A connected to network");
+        helper.assertTrue(B.GetConnectedNetwork() == wispNetwork, "Expect B connected to network");
+        helper.assertTrue(C.GetConnectedNetwork() == wispNetwork, "Expect C connected to network");
+        helper.assertTrue(D.GetConnectedNetwork() == wispNetwork, "Expect D connected to network");
+        helper.assertTrue(E.GetConnectedNetwork() == wispNetwork, "Expect E connected to network");
+
+        wispNetwork.TryBuildPathfindingBetweenNodes(E, C);
+        wispNetwork.TryBuildPathfindingBetweenNodes(A, C);
+        wispNetwork.TryBuildPathfindingBetweenNodes(D, C);
+
+        helper.assertTrue(A.GetPathData().nextNodeToDestinations.containsKey(C) && A.GetPathData().nextNodeToDestinations.get(C).nextPathNode() == B, "Expect A path to C to go via B");
+        helper.assertTrue(B.GetPathData().nextNodeToDestinations.containsKey(C) && B.GetPathData().nextNodeToDestinations.get(C).nextPathNode() == C, "Expect B path to C to go via C");
+        helper.assertTrue(D.GetPathData().nextNodeToDestinations.containsKey(C), "Expect D path to C");
+        helper.assertTrue(E.GetPathData().nextNodeToDestinations.containsKey(C) && E.GetPathData().nextNodeToDestinations.get(C).nextPathNode() == B, "Expect E path to C to go via B");
+
+        B.DisconnectFromNode(A);
+
+        //should all still be connected
+        helper.assertTrue(A.GetConnectedNetwork() == wispNetwork, "Expect A connected to network");
+        helper.assertTrue(B.GetConnectedNetwork() == wispNetwork, "Expect B connected to network");
+        helper.assertTrue(C.GetConnectedNetwork() == wispNetwork, "Expect C connected to network");
+        helper.assertTrue(D.GetConnectedNetwork() == wispNetwork, "Expect D connected to network");
+        helper.assertTrue(E.GetConnectedNetwork() == wispNetwork, "Expect E connected to network");
+
+        helper.assertTrue(!A.GetPathData().nextNodeToDestinations.containsKey(C), "Expect A path to C to be cleared");
+        helper.assertTrue(B.GetPathData().nextNodeToDestinations.containsKey(C), "Expect B path to C to still exist");
+        //d may have been cleared depending on which direction it went
+        helper.assertTrue(E.GetPathData().nextNodeToDestinations.containsKey(C), "Expect E path to C to still exist");
+
+        B.DisconnectFromNode(E);
+
+        //only B and C should be connected
+        helper.assertTrue(A.GetConnectedNetwork() == null, "Expect A not connected to network");
+        helper.assertTrue(B.GetConnectedNetwork() == wispNetwork, "Expect B connected to network");
+        helper.assertTrue(C.GetConnectedNetwork() == wispNetwork, "Expect C connected to network");
+        helper.assertTrue(D.GetConnectedNetwork() == null, "Expect D not connected to network");
+        helper.assertTrue(E.GetConnectedNetwork() == null, "Expect E not connected to network");
+
+        helper.assertTrue(!A.GetPathData().nextNodeToDestinations.containsKey(C), "Expect A path to C to be cleared");
+        helper.assertTrue(B.GetPathData().nextNodeToDestinations.containsKey(C), "Expect B path to C to still exist");
+        helper.assertTrue(!D.GetPathData().nextNodeToDestinations.containsKey(C), "Expect D path to C to be cleared");
+        helper.assertTrue(!E.GetPathData().nextNodeToDestinations.containsKey(C), "Expect E path to C to be cleared");
+
+        helper.succeed();
+    }
+
+    @GameTest(batch = "WispNetwork", template = "forge:empty3x3x3")
     public static void WispNetworkTest_Pathfinding(@NotNull GameTestHelper helper)
     {
         // A -- B -- C -- N

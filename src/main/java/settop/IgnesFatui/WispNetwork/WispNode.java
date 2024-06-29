@@ -15,6 +15,7 @@ public class WispNode
     public static class PathData
     {
         public final HashMap<WispNode, DestinationData> nextNodeToDestinations = new HashMap<>();
+        public WispNode nodeTowardsNetwork;
     }
 
     public final ResourceKey<Level> dimension;
@@ -88,30 +89,58 @@ public class WispNode
         connectedNodes.add(node);
         node.connectedNodes.add(this);
 
-        if(connectedNetwork == null && node.connectedNetwork != null)
+        if(connectedNetwork != null)
         {
-            node.connectedNetwork.AddNode(this);
+            connectedNetwork.OnNodesConnected(this, node);
         }
-        else if(connectedNetwork != null && node.connectedNetwork == null)
+        else if(node.connectedNetwork != null)
         {
-            connectedNetwork.AddNode(node);
+            node.connectedNetwork.OnNodesConnected(this, node);
         }
 
         return true;
     }
 
+    public void DisconnectFromNode(@NotNull WispNode node)
+    {
+        if(!connectedNodes.contains(node))
+        {
+            return;
+        }
+        if(connectedNetwork != null)
+        {
+            connectedNetwork.OnNodesDisconnected(this, node);
+        }
+
+        connectedNodes.remove(node);
+        node.connectedNodes.remove(this);
+
+        if(connectedNetwork != null)
+        {
+            connectedNetwork.UpdateNodeNetworkConnection(this);
+            connectedNetwork.UpdateNodeNetworkConnection(node);
+        }
+    }
+
     public void DisconnectAll()
     {
+        if(connectedNetwork != null)
+        {
+            connectedNetwork.OnNodeDisconnectedFromAll(this);
+        }
+        //clear nodes after disconnecting from network
         for(WispNode node : connectedNodes)
         {
             node.connectedNodes.remove(this);
         }
-        connectedNodes.clear();
-
         if(connectedNetwork != null)
         {
-            connectedNetwork.RemoveNode(this);
+            for (WispNode node : connectedNodes)
+            {
+                connectedNetwork.UpdateNodeNetworkConnection(node);
+            }
         }
+        connectedNodes.clear();
     }
 
     public void AddUpgrade(@NotNull WispNodeUpgrade upgrade)
