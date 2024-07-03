@@ -1,0 +1,11 @@
+{
+    "variants":
+	{
+		"facing=down":{ "model": "sif1:block/wisp_node" },
+		"facing=up":{ "model": "sif1:block/wisp_node", "x":180 },
+		"facing=east":{ "model": "sif1:block/wisp_node", "x":90, "y":270 },
+		"facing=west":{ "model": "sif1:block/wisp_node", "x":90, "y":90 },
+		"facing=north":{ "model": "sif1:block/wisp_node", "x":90, "y":180 },
+		"facing=south":{ "model": "sif1:block/wisp_node", "x":90, "y":0 }
+	}
+}

@@ -3,6 +3,7 @@ package settop.IgnesFatui;
 import net.minecraft.gametest.framework.StructureUtils;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.Item;
+import net.minecraft.world.item.StandingAndWallBlockItem;
 import net.minecraft.world.item.crafting.RecipeManager;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntityType;
@@ -15,6 +16,9 @@ import net.minecraftforge.registries.ForgeRegistries;
 import net.minecraftforge.registries.RegistryObject;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import settop.IgnesFatui.BlockEntities.WispNodeBlockEntity;
+import settop.IgnesFatui.Blocks.WispNodeBlock;
+import settop.IgnesFatui.Items.DirectionalBlockItem;
 
 import java.util.Optional;
 
@@ -131,7 +135,7 @@ public class IgnesFatui
         public static final DeferredRegister<Block> BLOCKS = DeferredRegister.create(ForgeRegistries.BLOCKS, IgnesFatui.MOD_ID);
 
        // public static final RegistryObject<Block> WISP_CORE = BLOCKS.register("wisp_core", WispCore::new );
-        //public static final RegistryObject<Block> WISP_CONNECTION_NODE  = BLOCKS.register("wisp_connection_node", WispConnectionNode::new );
+        public static final RegistryObject<Block> WISP_NODE  = BLOCKS.register("wisp_node", WispNodeBlock::new );
     }
 
     public static class BlockEntities
@@ -141,11 +145,11 @@ public class IgnesFatui
         /*
         public static final RegistryObject<BlockEntityType<WispCoreTileEntity>> WISP_CORE_TILE_ENTITY = BLOCK_ENTITIES.register("wisp_core",
                 ()->{ return BlockEntityType.Builder.of(WispCoreTileEntity::new, Blocks.WISP_CORE.get() ).build(null); });
+        */
+        public static final RegistryObject<BlockEntityType<WispNodeBlockEntity>> WISP_NODE_BLOCK_ENTITY = BLOCK_ENTITIES.register("wisp_node",
+                ()->{ return BlockEntityType.Builder.of(WispNodeBlockEntity::new, Blocks.WISP_NODE.get()).build(null); });
 
-        public static final RegistryObject<BlockEntityType<WispConnectionNodeTileEntity>> WISP_CONNECTION_NODE_TILE_ENTITY = BLOCK_ENTITIES.register("wisp_connection_node",
-                ()->{ return BlockEntityType.Builder.of(WispConnectionNodeTileEntity::new, Blocks.WISP_CONNECTION_NODE.get() ).build(null); });
 
-         */
     }
 
     public static class Items
@@ -154,7 +158,7 @@ public class IgnesFatui
 
         // Block Items
         //public static final RegistryObject<Item> WISP_CORE_ITEM = ITEMS.register("wisp_core", ()->{ return new BlockItem( Blocks.WISP_CORE.get(), new Item.Properties()/*.group(ItemGroup.MISC)*/ ); });
-        //public static final RegistryObject<Item> WISP_CONNECTION_NODE_ITEM = ITEMS.register("wisp_connection_node", ()->{ return new BlockItem( Blocks.WISP_CONNECTION_NODE.get(), new Item.Properties()/*.group(ItemGroup.MISC)*/ ); });
+        public static final RegistryObject<Item> WISP_NODE_ITEM = ITEMS.register("wisp_node", ()->{ return new DirectionalBlockItem( Blocks.WISP_NODE.get(), new Item.Properties()/*.group(ItemGroup.MISC)*/, WispNodeBlock.FACING ); });
 
         // Items
         //public static final RegistryObject<Item> WISP_ITEM = ITEMS.register("wisp", BasicWispItem::new );

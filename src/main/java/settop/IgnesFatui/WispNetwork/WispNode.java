@@ -3,7 +3,9 @@ package settop.IgnesFatui.WispNetwork;
 import net.minecraft.core.BlockPos;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.entity.BlockEntity;
 import org.jetbrains.annotations.NotNull;
+import settop.IgnesFatui.IgnesFatui;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -24,6 +26,7 @@ public class WispNode
     private final ArrayList<WispNode> connectedNodes = new ArrayList<>();
     private final ArrayList<WispNodeUpgrade> upgrades = new ArrayList<>();
     private final PathData pathData = new PathData();
+    private BlockEntity linkedBlockEntity;
 
     public WispNode(ResourceKey<Level> dimension, BlockPos pos)
     {
@@ -162,6 +165,42 @@ public class WispNode
                 upgrade.OnParentNodeDisconnectFromNetwork();
             }
             upgrade.OnRemoveFromNode(this);
+        }
+    }
+
+    public void LinkToBlockEntity(@NotNull BlockEntity blockEntity)
+    {
+        if(linkedBlockEntity == null)
+        {
+            linkedBlockEntity = blockEntity;
+        }
+        else
+        {
+            IgnesFatui.LOGGER.error("Trying to link wisp node to a block entity while it is already linked. Dim: %s Pos: %s Linked block entity: %s New block entity: %s".formatted
+            (
+                    dimension.toString(),
+                    pos.toString(),
+                    linkedBlockEntity.toString(),
+                    blockEntity.toString()
+            ));
+        }
+    }
+
+    public void UnlinkFromBlockEntity(@NotNull BlockEntity blockEntity)
+    {
+        if(linkedBlockEntity == blockEntity)
+        {
+            linkedBlockEntity = null;
+        }
+        else
+        {
+            IgnesFatui.LOGGER.error("Trying to unlink wisp node from a block entity when it is linked to a different entity. Dim: %s Pos: %s Linked block entity: %s Unlinking block entity: %s".formatted
+            (
+                    dimension.toString(),
+                    pos.toString(),
+                    linkedBlockEntity == null ? "null" : linkedBlockEntity.toString(),
+                    blockEntity.toString()
+            ));
         }
     }
 }
