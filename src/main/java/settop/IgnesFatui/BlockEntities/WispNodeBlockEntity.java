@@ -24,6 +24,8 @@ public class WispNodeBlockEntity extends BlockEntity
         super(IgnesFatui.BlockEntities.WISP_NODE_BLOCK_ENTITY.get(), pos, blockState);
     }
 
+    public WispNode GetWispNode() { return node; }
+
     //called when the player adds this to the world
     public void onPlaced()
     {

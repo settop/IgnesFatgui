@@ -1,9 +1,12 @@
 package settop.IgnesFatui;
 
+import net.minecraft.core.GlobalPos;
+import net.minecraft.core.component.DataComponentType;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.core.registries.Registries;
 import net.minecraft.gametest.framework.StructureUtils;
-import net.minecraft.world.item.BlockItem;
-import net.minecraft.world.item.Item;
-import net.minecraft.world.item.StandingAndWallBlockItem;
+import net.minecraft.network.chat.Component;
+import net.minecraft.world.item.*;
 import net.minecraft.world.item.crafting.RecipeManager;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntityType;
@@ -19,6 +22,7 @@ import org.apache.logging.log4j.Logger;
 import settop.IgnesFatui.BlockEntities.WispNodeBlockEntity;
 import settop.IgnesFatui.Blocks.WispNodeBlock;
 import settop.IgnesFatui.Items.DirectionalBlockItem;
+import settop.IgnesFatui.Items.WispStaff;
 
 import java.util.Optional;
 
@@ -42,6 +46,8 @@ public class IgnesFatui
         Blocks.BLOCKS.register( FMLJavaModLoadingContext.get().getModEventBus() );
         BlockEntities.BLOCK_ENTITIES.register( FMLJavaModLoadingContext.get().getModEventBus() );
         Items.ITEMS.register( FMLJavaModLoadingContext.get().getModEventBus() );
+        DataComponents.COMPONENTS.register( FMLJavaModLoadingContext.get().getModEventBus() );
+        CreativeTab.CREATIVE_TABS.register( FMLJavaModLoadingContext.get().getModEventBus() );
 
         // Register ourselves for server and other game events we are interested in
         MinecraftForge.EVENT_BUS.register(this);
@@ -161,8 +167,41 @@ public class IgnesFatui
         public static final RegistryObject<Item> WISP_NODE_ITEM = ITEMS.register("wisp_node", ()->{ return new DirectionalBlockItem( Blocks.WISP_NODE.get(), new Item.Properties()/*.group(ItemGroup.MISC)*/, WispNodeBlock.FACING ); });
 
         // Items
-        //public static final RegistryObject<Item> WISP_ITEM = ITEMS.register("wisp", BasicWispItem::new );
+        public static final RegistryObject<Item> WISP_STAFF = ITEMS.register("wisp_staff", ()->new WispStaff(new Item.Properties().stacksTo(1)) );
         //public static final RegistryObject<Item> WISP_PROVIDER_ENHANCEMENT_ITEM = ITEMS.register("wisp_provider_enhancement", () -> new WispEnhancementItem(EnhancementTypes.PROVIDER) );
 
+    }
+
+    public static class DataComponents
+    {
+        public static final DeferredRegister<DataComponentType<?>> COMPONENTS = DeferredRegister.create(Registries.DATA_COMPONENT_TYPE, MOD_ID);
+
+        public static final RegistryObject<DataComponentType<GlobalPos>> BOUND_GLOBAL_POS = COMPONENTS.register
+        (
+                "bound_global_pos",
+                () -> DataComponentType.<GlobalPos>builder()
+                        .persistent(GlobalPos.CODEC)
+                        .networkSynchronized(GlobalPos.STREAM_CODEC)
+                        .build()
+        );
+
+    }
+
+    public static class CreativeTab
+    {
+        public static final DeferredRegister<CreativeModeTab> CREATIVE_TABS = DeferredRegister.create(Registries.CREATIVE_MODE_TAB, MOD_ID);
+
+        public static final RegistryObject<CreativeModeTab> WISPS_TAB = CREATIVE_TABS.register("example", () -> CreativeModeTab.builder()
+          // Set name of tab to display
+          .title(Component.translatable("item_group." + MOD_ID + ".wisps"))
+          // Set icon of creative tab
+          .icon(() -> new ItemStack(Items.WISP_STAFF.get()))
+          // Add default items to tab
+          .displayItems((params, output) -> {
+            output.accept(Items.WISP_STAFF.get());
+            output.accept(Items.WISP_NODE_ITEM.get());
+          })
+          .build()
+        );
     }
 }

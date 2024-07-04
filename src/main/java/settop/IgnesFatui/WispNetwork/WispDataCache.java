@@ -105,14 +105,20 @@ public class WispDataCache extends SavedData
 
     static public WispDataCache GetCache(@NotNull Level level)
     {
-        //ensure that the cache is always loade by putting it all on the overworld
+        //ensure that the cache is always loaded by putting it all on the overworld
         return level.getServer().overworld().getDataStorage().computeIfAbsent(factory, DATA_NAME);
     }
 
-    public WispNode GetOrCreateWispNode(@NotNull ResourceKey<Level> dim, @NotNull BlockPos pos)
+    public @NotNull WispNode GetOrCreateWispNode(@NotNull ResourceKey<Level> dim, @NotNull BlockPos pos)
     {
         DimensionData dimensionData = dimensionDataMap.computeIfAbsent(dim, (k)->new DimensionData());
         return dimensionData.nodes.computeIfAbsent(pos, (k)->new WispNode(dim, pos));
+    }
+
+    public WispNode GetWispNode(@NotNull ResourceKey<Level> dim, @NotNull BlockPos pos)
+    {
+        DimensionData dimensionData = dimensionDataMap.computeIfAbsent(dim, (k)->new DimensionData());
+        return dimensionData.nodes.get(pos);
     }
 
     public void RemoveWispNode(@NotNull WispNode node)
