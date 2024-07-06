@@ -1,17 +1,19 @@
 package settop.IgnesFatui;
 
+import net.minecraft.client.gui.screens.MenuScreens;
+import net.minecraft.client.gui.screens.inventory.ContainerScreen;
 import net.minecraft.core.GlobalPos;
 import net.minecraft.core.component.DataComponentType;
-import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
-import net.minecraft.gametest.framework.StructureUtils;
 import net.minecraft.network.chat.Component;
+import net.minecraft.world.flag.FeatureFlags;
+import net.minecraft.world.inventory.MenuType;
 import net.minecraft.world.item.*;
-import net.minecraft.world.item.crafting.RecipeManager;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.fml.common.Mod;
+import net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent;
 import net.minecraftforge.fml.event.lifecycle.FMLCommonSetupEvent;
 import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
 import net.minecraftforge.registries.DeferredRegister;
@@ -23,6 +25,8 @@ import settop.IgnesFatui.BlockEntities.WispNodeBlockEntity;
 import settop.IgnesFatui.Blocks.WispNodeBlock;
 import settop.IgnesFatui.Items.DirectionalBlockItem;
 import settop.IgnesFatui.Items.WispStaff;
+import settop.IgnesFatui.Menu.WispStaffMenuContainer;
+import settop.IgnesFatui.Network.PacketHandler;
 
 import java.util.Optional;
 
@@ -32,21 +36,19 @@ public class IgnesFatui
     // Directly reference a log4j logger.
     public static final Logger LOGGER = LogManager.getLogger();
     public static final String MOD_ID = "sif1";
-    public static final String MULTI_SCREEN_CHANNEL_VERSION = "1.0.0";
-    //public static final SimpleChannel MULTI_SCREEN_CHANNEL = NetworkRegistry.newSimpleChannel(new ResourceLocation(MOD_ID, "multi_screen"), () -> MULTI_SCREEN_CHANNEL_VERSION,
-    //        MULTI_SCREEN_CHANNEL_VERSION::equals,
-    //        MULTI_SCREEN_CHANNEL_VERSION::equals);
 
     public IgnesFatui()
     {
         // Register the setup method for modloading
         FMLJavaModLoadingContext.get().getModEventBus().addListener(this::setup);
-
+        FMLJavaModLoadingContext.get().getModEventBus().addListener(this::clientSetup);
 
         Blocks.BLOCKS.register( FMLJavaModLoadingContext.get().getModEventBus() );
         BlockEntities.BLOCK_ENTITIES.register( FMLJavaModLoadingContext.get().getModEventBus() );
         Items.ITEMS.register( FMLJavaModLoadingContext.get().getModEventBus() );
+        ContainerMenus.MENUS.register( FMLJavaModLoadingContext.get().getModEventBus() );
         DataComponents.COMPONENTS.register( FMLJavaModLoadingContext.get().getModEventBus() );
+        CreativeTab.CREATIVE_TABS.register( FMLJavaModLoadingContext.get().getModEventBus() );
         CreativeTab.CREATIVE_TABS.register( FMLJavaModLoadingContext.get().getModEventBus() );
 
         // Register ourselves for server and other game events we are interested in
@@ -55,6 +57,7 @@ public class IgnesFatui
 
     private void setup(final FMLCommonSetupEvent event)
     {
+        PacketHandler.Register();
         /*
         MULTI_SCREEN_CHANNEL.registerMessage(1, CContainerTabSelected.class,
                 CContainerTabSelected::encode, CContainerTabSelected::decode,
@@ -89,15 +92,17 @@ public class IgnesFatui
          */
     }
 
+    private void clientSetup(FMLClientSetupEvent event)
+    {
+        event.enqueueWork(
+            () -> MenuScreens.register(ContainerMenus.WISP_STAFF_MENU.get(), ContainerScreen::new)
+        );
+    }
+
     public static class Capabilities
     {
         //@CapabilityInject(IEnhancement.class)
         //public static Capability<IEnhancement> CAPABILITY_ENHANCEMENT = null;
-    }
-
-    public static class Containers
-    {
-        //public static ContainerType<BasicWispContainer> BASIC_WISP_CONTAINER;
     }
 
 
@@ -170,6 +175,17 @@ public class IgnesFatui
         public static final RegistryObject<Item> WISP_STAFF = ITEMS.register("wisp_staff", ()->new WispStaff(new Item.Properties().stacksTo(1)) );
         //public static final RegistryObject<Item> WISP_PROVIDER_ENHANCEMENT_ITEM = ITEMS.register("wisp_provider_enhancement", () -> new WispEnhancementItem(EnhancementTypes.PROVIDER) );
 
+    }
+
+    public static class ContainerMenus
+    {
+        public static final DeferredRegister<MenuType<?>> MENUS = DeferredRegister.create(ForgeRegistries.MENU_TYPES, IgnesFatui.MOD_ID);
+
+        public static final RegistryObject<MenuType<WispStaffMenuContainer>> WISP_STAFF_MENU = MENUS.register
+                (
+                        "wisp_staff_menu",
+                        () -> new MenuType<>(WispStaffMenuContainer::CreateMenuClient, FeatureFlags.DEFAULT_FLAGS)
+                );
     }
 
     public static class DataComponents

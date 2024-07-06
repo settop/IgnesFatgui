@@ -4,12 +4,16 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.GlobalPos;
 import net.minecraft.core.component.DataComponentMap;
 import net.minecraft.core.component.DataComponents;
-import net.minecraft.world.InteractionHand;
-import net.minecraft.world.InteractionResult;
-import net.minecraft.world.InteractionResultHolder;
+import net.minecraft.network.chat.Component;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.*;
+import net.minecraft.world.entity.SlotAccess;
 import net.minecraft.world.entity.ai.attributes.Attribute;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.inventory.ChestMenu;
+import net.minecraft.world.inventory.ClickAction;
+import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
@@ -17,7 +21,9 @@ import net.minecraft.world.item.component.ItemContainerContents;
 import net.minecraft.world.item.context.UseOnContext;
 import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.TorchBlock;
 import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.level.block.entity.ChestBlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
@@ -26,6 +32,7 @@ import net.minecraft.world.phys.shapes.CollisionContext;
 import org.jetbrains.annotations.NotNull;
 import settop.IgnesFatui.BlockEntities.WispNodeBlockEntity;
 import settop.IgnesFatui.IgnesFatui;
+import settop.IgnesFatui.Menu.WispStaffMenuContainer;
 import settop.IgnesFatui.WispNetwork.WispDataCache;
 import settop.IgnesFatui.WispNetwork.WispNode;
 
@@ -34,6 +41,18 @@ public class WispStaff extends Item
     public WispStaff(Item.Properties properties)
     {
         super(properties.component(DataComponents.CONTAINER, ItemContainerContents.EMPTY));
+    }
+
+    @Override
+    public boolean overrideStackedOnOther(@NotNull ItemStack itemStack, @NotNull Slot stackOnSlot, @NotNull ClickAction clickAction, @NotNull Player player)
+    {
+        return super.overrideStackedOnOther(itemStack, stackOnSlot, clickAction, player);
+    }
+
+    @Override
+    public boolean overrideOtherStackedOnMe(@NotNull ItemStack itemStack, @NotNull ItemStack otherItemStack, @NotNull Slot itemSlot, @NotNull ClickAction clickAction, @NotNull Player player, @NotNull SlotAccess slotAccess)
+    {
+        return super.overrideOtherStackedOnMe(itemStack, otherItemStack, itemSlot, clickAction, player, slotAccess);
     }
 
     @Override
@@ -54,14 +73,21 @@ public class WispStaff extends Item
         BlockHitResult lookingAt = level.clip(new ClipContext(start, end, ClipContext.Block.OUTLINE, ClipContext.Fluid.NONE, CollisionContext.empty()));
         if(lookingAt.getType() == HitResult.Type.MISS)
         {
-            if(boundPos == null)
+            if(boundPos != null)
             {
-                //clear teh bound position
+                //clear the bound position
                 staff.remove(IgnesFatui.DataComponents.BOUND_GLOBAL_POS.get());
             }
             else
             {
                 //open the internal inventory
+                if(player instanceof ServerPlayer)
+                {
+                    player.openMenu(new SimpleMenuProvider(
+                            (id, inventory, menuPlayer)->WispStaffMenuContainer.CreateMenuServer(id, inventory, staff),
+                            staff.getDisplayName()
+                            ));
+                }
             }
 
             return InteractionResultHolder.success(staff);

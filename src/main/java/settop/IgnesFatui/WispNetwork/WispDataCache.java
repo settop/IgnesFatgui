@@ -9,8 +9,10 @@ import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.saveddata.SavedData;
+import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.registries.ForgeRegistries;
 import org.jetbrains.annotations.NotNull;
+import net.minecraftforge.api.distmarker.OnlyIn;
 import settop.IgnesFatui.IgnesFatui;
 
 import java.util.HashMap;
@@ -103,6 +105,7 @@ public class WispDataCache extends SavedData
         return true;
     }
 
+    @OnlyIn(Dist.DEDICATED_SERVER)
     static public WispDataCache GetCache(@NotNull Level level)
     {
         //ensure that the cache is always loaded by putting it all on the overworld
