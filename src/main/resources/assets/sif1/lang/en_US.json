@@ -3,6 +3,8 @@
     "block.sif1.wisp_node": "Wisp Node",
 
     "item.sif1.wisp_staff": "Wisp Staff",
+    "item.sif1.wisp_external_node": "Wisp External Node",
+    "item.sif1.wisp_external_node.bound_pos": "Bound Position: [%d, %d, %d]",
     "item.sif1.wisp": "Wisp",
     "item.sif1.wisp_provider_enhancement": "Provider Enhancement",
 	
@@ -10,6 +12,12 @@
 
     "menu.sif1.basic_wisp_container": "Wisp",
     "menu.sif1.wisp_staff": "Wisp Staff",
+	
+	"menu.sif1.cannot_connect_reason.no_bound_position":"No bound position",
+	"menu.sif1.cannot_connect_reason.bound_position_is_not_valid":"Bound position is not valid",
+	"menu.sif1.cannot_connect_reason.out_of_range":"Bound position out of range",
+	"menu.sif1.cannot_connect_reason.line_of_sight_blocked":"Bound position out of line fo sight",
+	"menu.sif1.cannot_connect_reason.node_connected_elsewhere":"Bound position is bound elsewhere",
 
     "sif1.wisp_contents": "Enhancements",
 

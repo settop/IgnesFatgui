@@ -2,6 +2,9 @@ package settop.IgnesFatui.Blocks;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
@@ -17,9 +20,11 @@ import net.minecraft.world.level.block.state.StateDefinition;
 import net.minecraft.world.level.block.state.properties.DirectionProperty;
 import net.minecraft.world.level.material.MapColor;
 import net.minecraft.world.level.storage.loot.LootParams;
+import net.minecraft.world.phys.BlockHitResult;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import settop.IgnesFatui.BlockEntities.WispNodeBlockEntity;
+import settop.IgnesFatui.Menu.WispNodeMenu;
 
 import java.util.List;
 
@@ -102,5 +107,18 @@ public class WispNodeBlock extends Block implements EntityBlock
     {
         //ToDo: store meta data on the item
         return super.getDrops(blockState, lootBuilder);
+    }
+
+    @Override
+    protected @NotNull InteractionResult useWithoutItem(@NotNull BlockState state, Level level, @NotNull BlockPos pos, @NotNull Player player, @NotNull BlockHitResult hitResult)
+    {
+        if (!level.isClientSide && player instanceof ServerPlayer serverPlayer)
+        {
+            if(level.getBlockEntity(pos) instanceof WispNodeBlockEntity wispNodeBlockEntity)
+            {
+                wispNodeBlockEntity.OpenMenu(serverPlayer);
+            }
+        }
+        return InteractionResult.sidedSuccess(level.isClientSide);
     }
 }

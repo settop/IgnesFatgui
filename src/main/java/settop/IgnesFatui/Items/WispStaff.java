@@ -38,6 +38,11 @@ import settop.IgnesFatui.WispNetwork.WispNode;
 
 public class WispStaff extends Item
 {
+    public static boolean AcceptsItemInStorage(ItemStack item)
+    {
+        return item.getItem() instanceof WispStaffStorable;
+    }
+
     public WispStaff(Item.Properties properties)
     {
         super(properties.component(DataComponents.CONTAINER, ItemContainerContents.EMPTY));
@@ -53,6 +58,22 @@ public class WispStaff extends Item
     public boolean overrideOtherStackedOnMe(@NotNull ItemStack itemStack, @NotNull ItemStack otherItemStack, @NotNull Slot itemSlot, @NotNull ClickAction clickAction, @NotNull Player player, @NotNull SlotAccess slotAccess)
     {
         return super.overrideOtherStackedOnMe(itemStack, otherItemStack, itemSlot, clickAction, player, slotAccess);
+    }
+
+    @Override
+    public boolean shouldCauseReequipAnimation(ItemStack oldStack, ItemStack newStack, boolean slotChanged)
+    {
+        if(super.shouldCauseReequipAnimation(oldStack, newStack, slotChanged))
+        {
+            ItemContainerContents oldContents = oldStack.get(DataComponents.CONTAINER);
+            ItemContainerContents newContents = newStack.get(DataComponents.CONTAINER);
+            //if the contents was updated, don't do the animation
+            return oldContents == null || oldContents.equals(newContents);
+        }
+        else
+        {
+            return false;
+        }
     }
 
     @Override
@@ -90,13 +111,13 @@ public class WispStaff extends Item
                 }
             }
 
-            return InteractionResultHolder.success(staff);
+            return InteractionResultHolder.sidedSuccess(staff, level.isClientSide());
         }
 
         if(boundPos != null && boundPos.dimension().equals(level.dimension()) && boundPos.pos().equals(lookingAt.getBlockPos()))
         {
             //this position is already bound
-            return InteractionResultHolder.fail(staff);
+            return InteractionResultHolder.sidedSuccess(staff, level.isClientSide());
         }
 
         BlockEntity selectedBlockEntity = level.getBlockEntity(lookingAt.getBlockPos());
@@ -108,7 +129,7 @@ public class WispStaff extends Item
         if(boundPos == null)
         {
             staff.set(IgnesFatui.DataComponents.BOUND_GLOBAL_POS.get(), new GlobalPos(level.dimension(), lookingAt.getBlockPos()));
-            return InteractionResultHolder.success(staff);
+            return InteractionResultHolder.sidedSuccess(staff, level.isClientSide());
         }
         else if(!level.dimension().equals(boundPos.dimension()))
         {
@@ -129,7 +150,7 @@ public class WispStaff extends Item
             return InteractionResultHolder.fail(staff);
         }
 
-            return InteractionResultHolder.success(staff);
+        return InteractionResultHolder.sidedSuccess(staff, level.isClientSide());
     }
 
     private boolean BindBlockEntities(@NotNull Level level, @NotNull BlockEntity blockEntity0, @NotNull BlockEntity blockEntity1)
