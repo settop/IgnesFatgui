@@ -1,7 +1,9 @@
 package settop.IgnesFatui.Menu;
 
 import com.google.common.collect.Lists;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.*;
 import net.minecraft.world.item.ItemStack;
@@ -15,15 +17,41 @@ import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.List;
 
-public class WispContainerMenuBase extends AbstractContainerMenu
+public abstract class WispContainerMenuBase extends AbstractContainerMenu
 {
     private final List<WispContainerSubMenuBase> subMenuContainers = new ArrayList<>();
     private final List<StringReferenceHolder> trackedStringReferences = Lists.newArrayList();
     private ServerPlayer player;
+    private int playerInvSlotStart = 0;
+
+    public final int SLOT_START_X = 8;
+    public final int SLOT_SIZE = 18;
+    public final int PLAYER_SLOT_START_Y = 103 + 2 * SLOT_SIZE;
+    public final int PLAYER_HOTBAR_SLOT_START_Y = 161 + 2 * SLOT_SIZE;
 
     protected WispContainerMenuBase(@Nullable MenuType<?> type, int id)
     {
         super(type, id);
+    }
+
+    protected void SetPlayerInventorySlots(Inventory playerInventory)
+    {
+        player = (ServerPlayer)playerInventory.player;
+        playerInvSlotStart = slots.size();
+
+        for(int row = 0; row < 3; ++row)
+        {
+            for(int x = 0; x < 9; ++x)
+            {
+                addSlot(new Slot(playerInventory, row * 9 + x + 9, SLOT_START_X + x * SLOT_SIZE, row * SLOT_SIZE + PLAYER_SLOT_START_Y));
+            }
+        }
+
+        //hotbar
+        for(int x = 0; x < 9; ++x)
+        {
+            this.addSlot(new Slot(playerInventory, x, SLOT_START_X + x * SLOT_SIZE, PLAYER_HOTBAR_SLOT_START_Y));
+        }
     }
 
     protected void SetSubMenuContainers(List<WispContainerSubMenuBase> subMenuContainers)
@@ -73,26 +101,6 @@ public class WispContainerMenuBase extends AbstractContainerMenu
     }
 
     @Override
-    public void addSlotListener(@NotNull ContainerListener listener)
-    {
-        super.addSlotListener(listener);
-        if(listener instanceof ServerPlayer)
-        {
-            player = (ServerPlayer)listener;
-        }
-    }
-
-    @Override
-    public void removeSlotListener(@NotNull ContainerListener listener)
-    {
-        super.removeSlotListener(listener);
-        if(player == listener)
-        {
-            player = null;
-        }
-    }
-
-    @Override
     public boolean stillValid(@NotNull Player playerIn)
     {
         return true;
@@ -112,12 +120,6 @@ public class WispContainerMenuBase extends AbstractContainerMenu
                 PacketHandler.SendStringUpdate(player, containerId, i, strRef.get());
             }
         }
-    }
-
-    @Override
-    public @NotNull ItemStack quickMoveStack(@NotNull Player player, int i)
-    {
-        return ItemStack.EMPTY;
     }
 
     @Override
@@ -252,6 +254,57 @@ public class WispContainerMenuBase extends AbstractContainerMenu
         {
             super.clicked(slotId, dragType, clickTypeIn, player);
         }
+    }
+
+    @Override
+    public @NotNull ItemStack quickMoveStack(@NotNull Player player, int sourceSlot)
+    {
+        ItemStack quickMovedStack = ItemStack.EMPTY;
+        Slot quickMovedSlot = slots.get(sourceSlot);
+
+        if (quickMovedSlot != null && quickMovedSlot.hasItem())
+        {
+            ItemStack rawStack = quickMovedSlot.getItem();
+            quickMovedStack = rawStack.copy();
+
+            // If the quick move was performed on the data inventory result slot
+            if (sourceSlot < playerInvSlotStart)
+            {
+                // Try to move the result slot into the player inventory/hotbar
+                if (!moveItemStackTo(rawStack, playerInvSlotStart, slots.size(), true))
+                {
+                    return ItemStack.EMPTY;
+                }
+            }
+            else
+            {
+                // Try to move the inventory/hotbar slot into the data inventory input slots
+                if (!moveItemStackTo(rawStack, 0, playerInvSlotStart, false))
+                {
+                    return ItemStack.EMPTY;
+                }
+            }
+
+            if (rawStack.isEmpty())
+            {
+                // If the raw stack has completely moved out of the slot, set the slot to the empty stack
+                quickMovedSlot.set(ItemStack.EMPTY);
+            }
+            else
+            {
+                // Otherwise, notify the slot that the stack count has changed
+                quickMovedSlot.setChanged();
+            }
+
+            if (rawStack.getCount() == quickMovedStack.getCount())
+            {
+                // If the raw stack was not able to be moved to another slot, no longer quick move
+                return ItemStack.EMPTY;
+            }
+            quickMovedSlot.onTake(player, rawStack);
+        }
+
+        return quickMovedStack; // Return the slot stack
     }
 
     public boolean mouseScrolled(int slotID, double mouseX, double mouseY, double delta)

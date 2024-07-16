@@ -2,6 +2,6 @@
     "parent": "block/cube_all",
     "textures":
     {
-        "all": "sif1:blocks/wisp_core"
+        "all": "logwow:blocks/wisp_core"
     }
 }

@@ -168,6 +168,11 @@ public class WispNode
         }
     }
 
+    public boolean IsLinkedToBlockEntity()
+    {
+        return linkedBlockEntity != null;
+    }
+
     public void LinkToBlockEntity(@NotNull BlockEntity blockEntity)
     {
         if(linkedBlockEntity == null)

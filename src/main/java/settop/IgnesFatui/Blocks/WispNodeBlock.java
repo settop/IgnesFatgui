@@ -116,7 +116,7 @@ public class WispNodeBlock extends Block implements EntityBlock
         {
             if(level.getBlockEntity(pos) instanceof WispNodeBlockEntity wispNodeBlockEntity)
             {
-                wispNodeBlockEntity.OpenMenu(serverPlayer);
+                //wispNodeBlockEntity.OpenMenu(serverPlayer);
             }
         }
         return InteractionResult.sidedSuccess(level.isClientSide);

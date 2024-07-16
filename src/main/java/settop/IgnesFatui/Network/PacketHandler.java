@@ -34,4 +34,10 @@ public class PacketHandler
     {
         GUI_CHANNEL.send(new SWindowStringPropertyPacket(windowID, propertyID, value), PacketDistributor.PLAYER.with(targetPlayer));
     }
+
+    @OnlyIn(Dist.CLIENT)
+    public static void SendMouseWheelScrolled(int windowID, int slotID, float delta)
+    {
+
+    }
 }

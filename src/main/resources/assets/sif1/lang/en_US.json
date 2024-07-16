@@ -4,7 +4,7 @@
 
     "item.sif1.wisp_staff": "Wisp Staff",
     "item.sif1.wisp_external_node": "Wisp External Node",
-    "item.sif1.wisp_external_node.bound_pos": "Bound Position: [%d, %d, %d]",
+    "item.sif1.bound_pos": "Bound Position: [%d, %d, %d]",
     "item.sif1.wisp": "Wisp",
     "item.sif1.wisp_provider_enhancement": "Provider Enhancement",
 	

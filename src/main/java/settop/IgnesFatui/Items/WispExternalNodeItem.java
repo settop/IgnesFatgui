@@ -9,6 +9,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.util.Mth;
 import net.minecraft.world.InteractionHand;
+import net.minecraft.world.InteractionResult;
 import net.minecraft.world.InteractionResultHolder;
 import net.minecraft.world.SimpleMenuProvider;
 import net.minecraft.world.entity.ai.attributes.Attributes;
@@ -21,6 +22,7 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.TooltipFlag;
 import net.minecraft.world.item.component.BundleContents;
+import net.minecraft.world.item.context.UseOnContext;
 import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
@@ -30,8 +32,10 @@ import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.phys.shapes.CollisionContext;
 import org.jetbrains.annotations.NotNull;
 import settop.IgnesFatui.BlockEntities.WispNodeBlockEntity;
+import settop.IgnesFatui.Capabilities.ExternalWispNodeCapabilityProvider;
 import settop.IgnesFatui.Client.Tooltip.ItemTooltip;
 import settop.IgnesFatui.IgnesFatui;
+import settop.IgnesFatui.Menu.ExternalWispNodeMenu;
 import settop.IgnesFatui.Menu.WispStaffMenuContainer;
 
 import java.util.List;
@@ -45,6 +49,12 @@ public class WispExternalNodeItem extends Item implements WispStaffStorable
     }
 
     @Override
+    public @NotNull InteractionResult useOn(@NotNull UseOnContext useOnContext)
+    {
+        return super.useOn(useOnContext);
+    }
+
+    @Override
     public @NotNull InteractionResultHolder<ItemStack> use(@NotNull Level level, @NotNull Player player, @NotNull InteractionHand hand)
     {
         ItemStack nodeItem = player.getItemInHand(hand);
@@ -52,7 +62,6 @@ public class WispExternalNodeItem extends Item implements WispStaffStorable
         {
             return InteractionResultHolder.pass(nodeItem);
         }
-        GlobalPos boundPos = nodeItem.get(IgnesFatui.DataComponents.BOUND_GLOBAL_POS.get());
 
         Vec3 start = new Vec3(player.getX(), player.getY() + player.getEyeHeight(), player.getZ());
         Vec3 look = player.getLookAngle();
@@ -62,46 +71,41 @@ public class WispExternalNodeItem extends Item implements WispStaffStorable
         BlockHitResult lookingAt = level.clip(new ClipContext(start, end, ClipContext.Block.OUTLINE, ClipContext.Fluid.NONE, CollisionContext.empty()));
         if(lookingAt.getType() == HitResult.Type.MISS)
         {
-            if(boundPos != null)
+            //open the internal inventory
+            if(player instanceof ServerPlayer)
             {
-                //clear the bound position
-                nodeItem.remove(IgnesFatui.DataComponents.BOUND_GLOBAL_POS.get());
-            }
-            else
-            {
-                //open the internal inventory
-                if(player instanceof ServerPlayer)
-                {
-                    /*player.openMenu(new SimpleMenuProvider(
-                            (id, inventory, menuPlayer)-> WispStaffMenuContainer.CreateMenuServer(id, inventory, staff),
-                            staff.getDisplayName()
-                            ));
-                     */
-                }
+                /*player.openMenu(new SimpleMenuProvider(
+                        (id, inventory, menuPlayer)-> WispStaffMenuContainer.CreateMenuServer(id, inventory, staff),
+                        staff.getDisplayName()
+                        ));
+                 */
             }
 
-            return InteractionResultHolder.success(nodeItem);
+            return InteractionResultHolder.sidedSuccess(nodeItem, level.isClientSide());
         }
-
-        if(boundPos != null && boundPos.dimension().equals(level.dimension()) && boundPos.pos().equals(lookingAt.getBlockPos()))
+        else
         {
-            //this position is already bound
-            return InteractionResultHolder.success(nodeItem);
-        }
+            BlockEntity selectedBlockEntity = level.getBlockEntity(lookingAt.getBlockPos());
+            if(selectedBlockEntity == null)
+            {
+                return InteractionResultHolder.pass(nodeItem);
+            }
 
-        BlockEntity selectedBlockEntity = level.getBlockEntity(lookingAt.getBlockPos());
-        if(selectedBlockEntity == null)
-        {
-            return InteractionResultHolder.fail(nodeItem);
-        }
+            Optional<ExternalWispNodeCapabilityProvider.Cap> capability = selectedBlockEntity.getCapability(IgnesFatui.Capabilities.EXTERNAL_WISP_NODE_HANDLER).resolve();
+            if(capability.isEmpty())
+            {
+                return InteractionResultHolder.pass(nodeItem);
+            }
 
-        if(selectedBlockEntity instanceof WispNodeBlockEntity)
-        {
-            return InteractionResultHolder.fail(nodeItem);
+            if(player instanceof ServerPlayer)
+            {
+                player.openMenu(new SimpleMenuProvider(
+                        (id, inventory, menuPlayer)-> ExternalWispNodeMenu.CreateMenuServer(id, inventory, selectedBlockEntity),
+                        selectedBlockEntity.getBlockState().getBlock().getName()
+                ));
+            }
+            return InteractionResultHolder.sidedSuccess(nodeItem, level.isClientSide());
         }
-
-        nodeItem.set(IgnesFatui.DataComponents.BOUND_GLOBAL_POS.get(), new GlobalPos(level.dimension(), lookingAt.getBlockPos()));
-        return InteractionResultHolder.success(nodeItem);
     }
 
 
@@ -131,7 +135,7 @@ public class WispExternalNodeItem extends Item implements WispStaffStorable
         GlobalPos boundPos = itemStack.get(IgnesFatui.DataComponents.BOUND_GLOBAL_POS.get());
         if(boundPos != null)
         {
-            hoverText.add(Component.translatable("item.sif1.wisp_external_node.bound_pos", boundPos.pos().getX(), boundPos.pos().getY(), boundPos.pos().getZ()));
+            hoverText.add(Component.translatable("item.sif1.bound_pos", boundPos.pos().getX(), boundPos.pos().getY(), boundPos.pos().getZ()));
         }
     }
 }

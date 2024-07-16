@@ -1,4 +1,4 @@
 {
     "loader": "forge:obj",    
-    "model": "sif1:models/block/wisp_core_ring_2.obj"
+    "model": "logwow:models/block/wisp_core_ring_2.obj"
 }

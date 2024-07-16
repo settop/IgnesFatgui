@@ -6,11 +6,9 @@ import net.minecraft.client.gui.screens.inventory.MenuAccess;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Inventory;
-import net.minecraft.world.inventory.ChestMenu;
 import net.minecraft.world.item.ItemStack;
 import org.jetbrains.annotations.NotNull;
 import settop.IgnesFatui.BlockEntities.WispNodeBlockEntity;
-import settop.IgnesFatui.Blocks.WispNodeBlock;
 import settop.IgnesFatui.Menu.WispNodeMenu;
 
 import java.util.List;

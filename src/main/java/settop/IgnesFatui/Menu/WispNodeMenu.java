@@ -26,9 +26,9 @@ public class WispNodeMenu extends AbstractContainerMenu
         buffer.writeShort(nodeInvSize);
     }
 
-    public static WispNodeMenu CreateMenuServer(int containerID, Inventory playerInventory, WispNodeBlockEntity.NodeInventory nodeInventory)
+    public static WispNodeMenu CreateMenuServer(int containerID, Inventory playerInventory)
     {
-        return new WispNodeMenu(containerID, playerInventory, nodeInventory, nodeInventory::GetCannotConnectReason);
+        return new WispNodeMenu(containerID, playerInventory, new SimpleContainer(1), null);
     }
 
     public static WispNodeMenu CreateMenuClient(int containerID, Inventory playerInventory, FriendlyByteBuf buffer)
@@ -59,7 +59,7 @@ public class WispNodeMenu extends AbstractContainerMenu
                 @Override
                 public boolean mayPlace(@NotNull ItemStack itemStack)
                 {
-                    return WispNodeBlockEntity.NodeInventory.CanPlaceItem(itemStack);
+                    return true;//WispNodeBlockEntity.NodeInventory.CanPlaceItem(itemStack);
                 }
 
                 @Override

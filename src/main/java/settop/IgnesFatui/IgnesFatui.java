@@ -13,6 +13,10 @@ import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraftforge.client.event.RegisterClientTooltipComponentFactoriesEvent;
 import net.minecraftforge.common.MinecraftForge;
+import net.minecraftforge.common.capabilities.Capability;
+import net.minecraftforge.common.capabilities.CapabilityManager;
+import net.minecraftforge.common.capabilities.CapabilityToken;
+import net.minecraftforge.common.capabilities.RegisterCapabilitiesEvent;
 import net.minecraftforge.common.extensions.IForgeMenuType;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent;
@@ -25,12 +29,14 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import settop.IgnesFatui.BlockEntities.WispNodeBlockEntity;
 import settop.IgnesFatui.Blocks.WispNodeBlock;
+import settop.IgnesFatui.Capabilities.ExternalWispNodeCapabilityProvider;
 import settop.IgnesFatui.Client.Screen.WispNodeScreen;
 import settop.IgnesFatui.Client.Tooltip.ItemTooltip;
 import settop.IgnesFatui.Client.Tooltip.ClientItemTooltip;
 import settop.IgnesFatui.Items.DirectionalBlockItem;
 import settop.IgnesFatui.Items.WispExternalNodeItem;
 import settop.IgnesFatui.Items.WispStaff;
+import settop.IgnesFatui.Menu.ExternalWispNodeMenu;
 import settop.IgnesFatui.Menu.WispNodeMenu;
 import settop.IgnesFatui.Menu.WispStaffMenuContainer;
 import settop.IgnesFatui.Network.PacketHandler;
@@ -48,6 +54,7 @@ public class IgnesFatui
         FMLJavaModLoadingContext.get().getModEventBus().addListener(this::setup);
         FMLJavaModLoadingContext.get().getModEventBus().addListener(this::clientSetup);
         FMLJavaModLoadingContext.get().getModEventBus().addListener(this::clientTooltipSetup);
+        FMLJavaModLoadingContext.get().getModEventBus().addListener(this::capabilitiesSetup);
 
         Blocks.BLOCKS.register( FMLJavaModLoadingContext.get().getModEventBus() );
         BlockEntities.BLOCK_ENTITIES.register( FMLJavaModLoadingContext.get().getModEventBus() );
@@ -59,6 +66,7 @@ public class IgnesFatui
         // Register ourselves for server and other game events we are interested in
         MinecraftForge.EVENT_BUS.register(this);
         MinecraftForge.EVENT_BUS.register(IgnesFatguiServerEvents.class);
+        MinecraftForge.EVENT_BUS.register(ExternalWispNodeCapabilityProvider.class);
     }
 
     private void setup(final FMLCommonSetupEvent event)
@@ -105,6 +113,7 @@ public class IgnesFatui
             {
                 MenuScreens.register(ContainerMenus.WISP_STAFF_MENU.get(), ContainerScreen::new);
                 MenuScreens.register(ContainerMenus.WISP_NODE_MENU.get(), WispNodeScreen::new);
+                //MenuScreens.register(ContainerMenus.EXTERNAL_WISP_NODE_MENU.get(), ContainerScreen::new);
             }
         );
     }
@@ -114,10 +123,15 @@ public class IgnesFatui
         event.register(ItemTooltip.class, ClientItemTooltip::new);
     }
 
+    private void capabilitiesSetup(RegisterCapabilitiesEvent registerCaps)
+    {
+        registerCaps.register(ExternalWispNodeCapabilityProvider.Cap.class);
+    }
+
     public static class Capabilities
     {
-        //@CapabilityInject(IEnhancement.class)
-        //public static Capability<IEnhancement> CAPABILITY_ENHANCEMENT = null;
+        public static final Capability<ExternalWispNodeCapabilityProvider.Cap> EXTERNAL_WISP_NODE_HANDLER = CapabilityManager.get(new CapabilityToken<ExternalWispNodeCapabilityProvider.Cap>() {
+        });
     }
 
 
@@ -176,6 +190,10 @@ public class IgnesFatui
                 ()->{ return BlockEntityType.Builder.of(WispNodeBlockEntity::new, Blocks.WISP_NODE.get()).build(null); });
 
 
+        public static boolean IsPartOfMod(BlockEntityType<?> type)
+        {
+            return WISP_NODE_BLOCK_ENTITY.get() == type;
+        }
     }
 
     public static class Items
@@ -206,6 +224,11 @@ public class IgnesFatui
         (
                 "wisp_node_menu",
                 () -> IForgeMenuType.create(WispNodeMenu::CreateMenuClient)
+        );
+        public static final RegistryObject<MenuType<ExternalWispNodeMenu>> EXTERNAL_WISP_NODE_MENU = MENUS.register
+        (
+                "external_wisp_node_menu",
+                () -> new MenuType<>(ExternalWispNodeMenu::CreateMenuClient, FeatureFlags.DEFAULT_FLAGS)
         );
     }
 

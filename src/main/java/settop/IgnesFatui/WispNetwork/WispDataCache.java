@@ -3,10 +3,12 @@ package settop.IgnesFatui.WispNetwork;
 import net.minecraft.commands.arguments.DimensionArgument;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.HolderLookup;
+import net.minecraft.core.SectionPos;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.nbt.*;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.saveddata.SavedData;
 import net.minecraftforge.api.distmarker.Dist;
@@ -133,5 +135,34 @@ public class WispDataCache extends SavedData
             return;
         }
         dimensionData.nodes.remove(node.GetPos());
+    }
+
+    public void RemoveWispNode(@NotNull ResourceKey<Level> dim, @NotNull BlockPos pos)
+    {
+        DimensionData dimensionData = dimensionDataMap.get(dim);
+        if(dimensionData == null)
+        {
+            return;
+        }
+        dimensionData.nodes.computeIfPresent(pos, (k, node)->{ node.DisconnectAll(); return null; });
+    }
+
+    public void RemoveUnlinkedNodesFromChunk(@NotNull ResourceKey<Level> dim, @NotNull ChunkPos chunkPos)
+    {
+        DimensionData dimensionData = dimensionDataMap.get(dim);
+        dimensionData.nodes.entrySet().removeIf((entry)->
+        {
+            int nodeChunkX = SectionPos.blockToSectionCoord(entry.getKey().getX());
+            int nodeChunkZ = SectionPos.blockToSectionCoord(entry.getKey().getZ());
+            if(chunkPos.x == nodeChunkX && chunkPos.z == nodeChunkZ && !entry.getValue().IsLinkedToBlockEntity())
+            {
+                entry.getValue().DisconnectAll();
+                return true;
+            }
+            else
+            {
+                return false;
+            }
+        });
     }
 }
