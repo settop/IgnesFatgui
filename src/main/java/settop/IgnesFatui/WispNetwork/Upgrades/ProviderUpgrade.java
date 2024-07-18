@@ -2,13 +2,13 @@ package settop.IgnesFatui.WispNetwork.Upgrades;
 
 import net.minecraft.world.Container;
 import net.minecraft.world.item.ItemStack;
-import org.jetbrains.annotations.NotNull;
 import settop.IgnesFatui.Utils.ItemStackKey;
 import settop.IgnesFatui.WispNetwork.*;
+import settop.IgnesFatui.WispNetwork.Resource.ItemResourceManager;
+import settop.IgnesFatui.WispNetwork.Resource.ResourceSource;
 
 import java.util.HashMap;
 import java.util.Iterator;
-import java.util.Map;
 
 public class ProviderUpgrade extends WispNodeUpgrade
 {
@@ -38,19 +38,8 @@ public class ProviderUpgrade extends WispNodeUpgrade
         }
     }
 
-    private static class ItemStackSource extends WispNetworkItemSources.InventoryItemSource
-    {
-        public int updateCount = 0;
-        public boolean isNew;
-
-        public ItemStackSource(boolean isNew)
-        {
-            this.isNew = isNew;
-        }
-    }
-
     private Container linkedInventory;
-    private final HashMap<ItemStackKey, ItemStackSource> itemSources = new HashMap<>();
+    private final HashMap<ItemStackKey, ResourceSource<ItemStack>> itemSources = new HashMap<>();
     private UpdateTask updateTask;
     private int fastestUpdateTime = 5;
     private int maxUpdateTime = 20 * 5;
@@ -116,25 +105,28 @@ public class ProviderUpgrade extends WispNodeUpgrade
                 continue;
             }
             ItemStackKey key = new ItemStackKey(slotStack);
-            ItemStackSource itemStackSource = itemSources.computeIfAbsent(key, k -> new ItemStackSource(false));
-            itemStackSource.UpdateCount(itemStackSource.GetCurrentCount() + slotStack.getCount());
+            ResourceSource<ItemStack> itemStackSource = itemSources.computeIfAbsent(key, k -> new ResourceSource<ItemStack>(0, 0));
+            itemStackSource.AccumulateNumAvailable(slotStack.getCount());
         }
-        itemSources.forEach(network::AddItemInventorySource);
+        ItemResourceManager itemResourceManager = network.GetItemResourceManager();
+        itemSources.forEach((k, v)->
+        {
+            v.Update();
+            itemResourceManager.AddSource(k.stack(), v);
+        });
     }
 
     private void RemoveItemsFromNetwork()
     {
-        WispNetwork network = GetParentNode().GetConnectedNetwork();
         updateTask.SetSuccessful();
 
-        itemSources.forEach(network::RemoveItemSource);
+        itemSources.forEach((k, v)->v.SetInvalid());
         itemSources.clear();
     }
 
     private boolean UpdateItemsInNetwork()
     {
-        boolean anyUpdates = false;
-        WispNetwork network = GetParentNode().GetConnectedNetwork();
+        ItemResourceManager itemResourceManager = GetParentNode().GetConnectedNetwork().GetItemResourceManager();
         final int numSlots = linkedInventory.getContainerSize();
         for(int i = 0; i < numSlots; ++i)
         {
@@ -144,28 +136,25 @@ public class ProviderUpgrade extends WispNodeUpgrade
                 continue;
             }
             ItemStackKey key = new ItemStackKey(slotStack);
-            ItemStackSource itemStackSource = itemSources.computeIfAbsent(key, k -> new ItemStackSource(true));
-            itemStackSource.updateCount += slotStack.getCount();
+            ResourceSource<ItemStack> itemStackSource = itemSources.computeIfAbsent(key, k ->
+            {
+                ResourceSource<ItemStack> source = new ResourceSource<ItemStack>(0, 0);
+                itemResourceManager.AddSource(k.stack(), source);
+                return source;
+            });
+            itemStackSource.AccumulateNumAvailable(slotStack.getCount());
         }
 
-        for(Iterator<HashMap.Entry<ItemStackKey, ItemStackSource>> it = itemSources.entrySet().iterator(); it.hasNext();)
+        boolean anyUpdates = false;
+        for(Iterator<HashMap.Entry<ItemStackKey, ResourceSource<ItemStack>>> it = itemSources.entrySet().iterator(); it.hasNext();)
         {
-            HashMap.Entry<ItemStackKey, ItemStackSource> entry = it.next();
-            if(entry.getValue().updateCount == 0)
+            HashMap.Entry<ItemStackKey, ResourceSource<ItemStack>> entry = it.next();
+            anyUpdates |= entry.getValue().Update();
+            if(entry.getValue().GetNumAvailable() == 0)
             {
                 anyUpdates = true;
-                network.RemoveItemSource(entry.getKey(), entry.getValue());
+                entry.getValue().SetInvalid();
                 it.remove();
-            }
-            else
-            {
-                anyUpdates |= entry.getValue().UpdateCount(entry.getValue().updateCount);
-                entry.getValue().updateCount = 0;
-                if(entry.getValue().isNew)
-                {
-                    network.AddItemInventorySource(entry.getKey(), entry.getValue());
-                    entry.getValue().isNew = false;
-                }
             }
         }
         return anyUpdates;

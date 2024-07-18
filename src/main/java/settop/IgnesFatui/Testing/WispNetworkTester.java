@@ -1,22 +1,18 @@
 package settop.IgnesFatui.Testing;
 
 import net.minecraft.core.BlockPos;
-import net.minecraft.gametest.framework.BeforeBatch;
 import net.minecraft.gametest.framework.GameTest;
 import net.minecraft.gametest.framework.GameTestHelper;
-import net.minecraft.resources.ResourceKey;
-import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.SimpleContainer;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
-import net.minecraft.world.level.Level;
 import net.minecraftforge.gametest.GameTestHolder;
 import org.jetbrains.annotations.NotNull;
 import settop.IgnesFatui.IgnesFatui;
-import settop.IgnesFatui.Utils.ItemStackKey;
+import settop.IgnesFatui.WispNetwork.Resource.ResourceManager;
+import settop.IgnesFatui.WispNetwork.Resource.ResourceSource;
 import settop.IgnesFatui.WispNetwork.Upgrades.ProviderUpgrade;
 import settop.IgnesFatui.WispNetwork.WispNetwork;
-import settop.IgnesFatui.WispNetwork.WispNetworkItemSources;
 import settop.IgnesFatui.WispNetwork.WispNode;
 
 @GameTestHolder(IgnesFatui.MOD_ID)
@@ -195,16 +191,22 @@ public class WispNetworkTester
         helper.assertValueEqual(node2Upgrade.GetParentNode(), node2, "Node2Upgrade parent node");
         helper.assertTrue(node2Upgrade.IsActive(), "Expected node2Upgrade to be active");
 
-        WispNetworkItemSources oakLogSources = wispNetwork.FindItemSource(new ItemStackKey(new ItemStack(Items.OAK_LOG, 1)));
-        WispNetworkItemSources ironBlockSources = wispNetwork.FindItemSource(new ItemStackKey(new ItemStack(Items.IRON_BLOCK, 1)));
-        WispNetworkItemSources arrowSources = wispNetwork.FindItemSource(new ItemStackKey(new ItemStack(Items.ARROW, 1)));
+        ResourceManager<ItemStack> resourceManager = wispNetwork.GetResourceManager(ItemStack.class);
 
-        helper.assertTrue(oakLogSources != null, "Expect there to be oak logs in the network");
-        helper.assertTrue(ironBlockSources != null, "Expect there to be iron blocks in the network");
-        helper.assertTrue(arrowSources == null, "Expect there to be no arrows in the network");
+        ResourceSource<ItemStack> oakLogSource = resourceManager.FindBestSourceMatchingStack(Items.OAK_LOG.getDefaultInstance(), 0);
+        ResourceSource<ItemStack> ironBlockSource = resourceManager.FindBestSourceMatchingStack(Items.IRON_BLOCK.getDefaultInstance(), 0);
+        ResourceSource<ItemStack> arrowSource = resourceManager.FindBestSourceMatchingStack(Items.ARROW.getDefaultInstance(), 0);
 
-        helper.assertValueEqual(oakLogSources.GetTotalCount(), 32, "wispNetwork oak log sources");
-        helper.assertValueEqual(ironBlockSources.GetTotalCount(), 64, "wispNetwork iron block sources");
+        helper.assertTrue(oakLogSource != null, "Expect there to be oak logs in the network");
+        helper.assertTrue(ironBlockSource != null, "Expect there to be iron blocks in the network");
+        helper.assertTrue(arrowSource == null, "Expect there to be no arrows in the network");
+
+        helper.assertValueEqual(oakLogSource.GetNumAvailable(), 32, "wispNetwork oak log sources");
+        helper.assertValueEqual(ironBlockSource.GetNumAvailable(), 64, "wispNetwork iron block sources");
+
+        helper.assertValueEqual(resourceManager.CountMatchingStacks(Items.OAK_LOG.getDefaultInstance()), 32, "wispNetwork oak log count");
+        helper.assertValueEqual(resourceManager.CountMatchingStacks(Items.IRON_BLOCK.getDefaultInstance()), 64, "wispNetwork iron block count");
+        helper.assertValueEqual(resourceManager.CountMatchingStacks(Items.ARROW.getDefaultInstance()), 0, "wispNetwork arrow count");
 
         node2Container.addItem(new ItemStack(Items.OAK_LOG, 64));
         node2Container.addItem(new ItemStack(Items.ARROW, 16));
@@ -214,13 +216,17 @@ public class WispNetworkTester
             wispNetwork.Tick();
         }
 
-        helper.assertValueEqual(oakLogSources.GetTotalCount(), 96, "wispNetwork oak log sources");
-        helper.assertValueEqual(ironBlockSources.GetTotalCount(), 64, "wispNetwork iron block sources");
+        helper.assertValueEqual(oakLogSource.GetNumAvailable(), 32, "wispNetwork oak log sources");
+        helper.assertValueEqual(ironBlockSource.GetNumAvailable(), 64, "wispNetwork iron block sources");
 
-        arrowSources = wispNetwork.FindItemSource(new ItemStackKey(new ItemStack(Items.ARROW, 1)));
+        arrowSource = resourceManager.FindBestSourceMatchingStack(Items.ARROW.getDefaultInstance(), 0);
 
-        helper.assertTrue(arrowSources != null, "Expect there to be arrows in the network");
-        helper.assertValueEqual(arrowSources.GetTotalCount(), 16, "wispNetwork arrow sources");
+        helper.assertTrue(arrowSource != null, "Expect there to be arrows in the network");
+        helper.assertValueEqual(arrowSource.GetNumAvailable(), 16, "wispNetwork arrow sources");
+
+        helper.assertValueEqual(resourceManager.CountMatchingStacks(Items.OAK_LOG.getDefaultInstance()), 96, "wispNetwork oak log count");
+        helper.assertValueEqual(resourceManager.CountMatchingStacks(Items.IRON_BLOCK.getDefaultInstance()), 64, "wispNetwork iron block count");
+        helper.assertValueEqual(resourceManager.CountMatchingStacks(Items.ARROW.getDefaultInstance()), 16, "wispNetwork arrow count");
 
         helper.succeed();
     }

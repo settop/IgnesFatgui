@@ -2,19 +2,14 @@ package settop.IgnesFatui.Utils;
 
 import net.minecraft.world.item.ItemStack;
 
-public class ItemStackKey
-{
-    private final ItemStack stack;
-
-    public ItemStackKey(ItemStack stack)
-    {
+public record ItemStackKey(ItemStack stack) {
+    public ItemStackKey(ItemStack stack) {
         this.stack = stack.copyWithCount(1);
     }
 
     @Override
-    public boolean equals(Object obj)
-    {
-        if(obj instanceof ItemStackKey)
+    public boolean equals(Object obj) {
+        if (obj instanceof ItemStackKey)
         {
             return ItemStack.isSameItemSameComponents(stack, ((ItemStackKey) obj).stack);
         }
@@ -25,8 +20,7 @@ public class ItemStackKey
     }
 
     @Override
-    public int hashCode()
-    {
+    public int hashCode() {
         return ItemStack.hashItemAndComponents(stack);
     }
 }

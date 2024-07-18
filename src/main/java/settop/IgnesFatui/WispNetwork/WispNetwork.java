@@ -2,6 +2,7 @@ package settop.IgnesFatui.WispNetwork;
 
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.core.BlockPos;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 
 import java.util.*;
@@ -10,7 +11,8 @@ import java.util.function.Function;
 
 
 import org.jetbrains.annotations.NotNull;
-import settop.IgnesFatui.Utils.ItemStackKey;
+import settop.IgnesFatui.WispNetwork.Resource.ItemResourceManager;
+import settop.IgnesFatui.WispNetwork.Resource.ResourceManager;
 
 public class WispNetwork
 {
@@ -18,10 +20,12 @@ public class WispNetwork
     private final TaskManager taskManager = new TaskManager();
     private final HashSet<WispNode> nodes = new HashSet<>();
 
-    private final HashMap<ItemStackKey, WispNetworkItemSources> itemSourceMap = new HashMap<ItemStackKey, WispNetworkItemSources>();
+    private final ItemResourceManager itemResourceManager;
+    private final HashMap<Class<?>, ResourceManager<?>> resourceManagers;
 
     public WispNetwork(ResourceKey<Level> dimension, BlockPos pos)
     {
+        this();
         this.rootNode = new WispNode(dimension, pos);
         nodes.add(rootNode);
         rootNode.OnConnectToNetwork(this);
@@ -31,6 +35,10 @@ public class WispNetwork
     private WispNetwork()
     {
         this.rootNode = null;
+        this.itemResourceManager = new ItemResourceManager();
+        this.resourceManagers = new HashMap<>();
+
+        this.resourceManagers.put(ItemStack.class, this.itemResourceManager);
     }
 
     //public BlockPos GetClosestPos(BlockPos inPos)
@@ -295,26 +303,26 @@ public class WispNetwork
         taskManager.AddTask(task);
     }
 
-    public void AddItemInventorySource(ItemStackKey stackKey, WispNetworkItemSources.InventoryItemSource itemSource)
+    public ItemResourceManager GetItemResourceManager()
     {
-        WispNetworkItemSources itemSources = itemSourceMap.computeIfAbsent(stackKey, k->new WispNetworkItemSources());
-        itemSources.AddItemSource(itemSource);
+        return itemResourceManager;
     }
 
-    public void RemoveItemSource(ItemStackKey stackKey, WispNetworkItemSources.InventoryItemSource source)
+    public <T> ResourceManager<T> GetResourceManager(Class<T> stackClass)
     {
-        WispNetworkItemSources sources = itemSourceMap.get(stackKey);
-        sources.RemoveItemSource(source);
-        if(sources.IsEmpty())
+        ResourceManager<?> resourceManager = resourceManagers.get(stackClass);
+        if(resourceManager == null)
         {
-            itemSourceMap.remove(stackKey);
+            return null;
         }
-    }
-
-    //ToDo: Need to add a way to fetch items with a filter
-    public WispNetworkItemSources FindItemSource(ItemStackKey stackKey)
-    {
-        return itemSourceMap.get(stackKey);
+        try
+        {
+            return (ResourceManager<T>) resourceManager;
+        }
+        catch (ClassCastException ignored)
+        {
+            return null;
+        }
     }
 
     float CalculateTravelCostWithoutSpeed(WispNode from, WispNode to)
