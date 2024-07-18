@@ -7,8 +7,11 @@ public abstract class WispNodeUpgrade
 {
     private WispNode parentNode;
 
+    //these are only called when the upgrade is already attached to a node
     public abstract void OnParentNodeConnectToNetwork();
     public abstract void OnParentNodeDisconnectFromNetwork();
+    public abstract void OnParentNodeLinkedToBlockEntity();
+    public abstract void OnParentNodeUnlinkedFromBlockEntity();
 
     public void OnAddToNode(@NotNull WispNode parentNode)
     {

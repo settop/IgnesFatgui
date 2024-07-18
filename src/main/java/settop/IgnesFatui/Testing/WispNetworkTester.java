@@ -7,6 +7,7 @@ import net.minecraft.world.SimpleContainer;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraftforge.gametest.GameTestHolder;
+import net.minecraftforge.items.ItemStackHandler;
 import org.jetbrains.annotations.NotNull;
 import settop.IgnesFatui.IgnesFatui;
 import settop.IgnesFatui.WispNetwork.Resource.ResourceManager;
@@ -173,8 +174,8 @@ public class WispNetworkTester
         WispNode node2 = new WispNode(helper.getLevel().dimension(), new BlockPos(0, 0, 10));
 
         ProviderUpgrade node1Upgrade = new ProviderUpgrade();
-        SimpleContainer node1Container = new SimpleContainer(1);
-        node1Container.addItem(new ItemStack(Items.OAK_LOG, 32));
+        ItemStackHandler node1Container = new ItemStackHandler(1);
+        node1Container.insertItem(0, new ItemStack(Items.OAK_LOG, 32), false);
         node1Upgrade.LinkToInventory(node1Container);
         node1.AddUpgrade(node1Upgrade);
 
@@ -183,8 +184,8 @@ public class WispNetworkTester
         helper.assertTrue(node1Upgrade.IsActive(), "Expected node1Upgrade to be active");
 
         ProviderUpgrade node2Upgrade = new ProviderUpgrade();
-        SimpleContainer node2Container = new SimpleContainer(3);
-        node2Container.addItem(new ItemStack(Items.IRON_BLOCK, 64));
+        ItemStackHandler node2Container = new ItemStackHandler(3);
+        node2Container.insertItem(0, new ItemStack(Items.IRON_BLOCK, 64), false);
         helper.assertTrue(wispNetwork.TryConnectNodeToNetwork(node2), "Could not connect node2 to network");
         node2.AddUpgrade(node2Upgrade);
         node2Upgrade.LinkToInventory(node2Container);
@@ -208,8 +209,8 @@ public class WispNetworkTester
         helper.assertValueEqual(resourceManager.CountMatchingStacks(Items.IRON_BLOCK.getDefaultInstance()), 64, "wispNetwork iron block count");
         helper.assertValueEqual(resourceManager.CountMatchingStacks(Items.ARROW.getDefaultInstance()), 0, "wispNetwork arrow count");
 
-        node2Container.addItem(new ItemStack(Items.OAK_LOG, 64));
-        node2Container.addItem(new ItemStack(Items.ARROW, 16));
+        node2Container.insertItem(1, new ItemStack(Items.OAK_LOG, 64), false);
+        node2Container.insertItem(2, new ItemStack(Items.ARROW, 16), false);
 
         for(int i = 0; i < 100; ++i)
         {

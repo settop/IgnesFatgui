@@ -39,6 +39,21 @@ public class WispNode
     public PathData GetPathData() { return pathData; }
     public float GetSpeed() { return 1.f; }
 
+    public WispNetwork GetConnectedNetwork()
+    {
+        return connectedNetwork;
+    }
+
+    public ArrayList<WispNode> GetConnectedNodes()
+    {
+        return connectedNodes;
+    }
+
+    public BlockEntity GetLinkedBlockEntity()
+    {
+        return linkedBlockEntity;
+    }
+
     public void OnConnectToNetwork(@NotNull WispNetwork _network)
     {
         connectedNetwork = _network;
@@ -55,16 +70,6 @@ public class WispNode
             upgrade.OnParentNodeDisconnectFromNetwork();
         }
         connectedNetwork = null;
-    }
-
-    public WispNetwork GetConnectedNetwork()
-    {
-        return connectedNetwork;
-    }
-
-    public ArrayList<WispNode> GetConnectedNodes()
-    {
-        return connectedNodes;
     }
 
     public boolean TryConnectToNode(@NotNull WispNode node)
@@ -150,20 +155,12 @@ public class WispNode
     {
         upgrades.add(upgrade);
         upgrade.OnAddToNode(this);
-        if(connectedNetwork != null)
-        {
-            upgrade.OnParentNodeConnectToNetwork();
-        }
     }
 
     public void RemoveUpgrade(@NotNull WispNodeUpgrade upgrade)
     {
         if(upgrades.remove(upgrade))
         {
-            if(connectedNetwork != null)
-            {
-                upgrade.OnParentNodeDisconnectFromNetwork();
-            }
             upgrade.OnRemoveFromNode(this);
         }
     }
@@ -178,6 +175,10 @@ public class WispNode
         if(linkedBlockEntity == null)
         {
             linkedBlockEntity = blockEntity;
+            for(WispNodeUpgrade upgrade : upgrades)
+            {
+                upgrade.OnParentNodeLinkedToBlockEntity();
+            }
         }
         else
         {
@@ -195,6 +196,10 @@ public class WispNode
     {
         if(linkedBlockEntity == blockEntity)
         {
+            for(WispNodeUpgrade upgrade : upgrades)
+            {
+                upgrade.OnParentNodeUnlinkedFromBlockEntity();
+            }
             linkedBlockEntity = null;
         }
         else

@@ -1,57 +1,49 @@
 package settop.IgnesFatui.WispNetwork.Upgrades;
 
-import net.minecraft.world.Container;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraftforge.common.capabilities.ForgeCapabilities;
+import net.minecraftforge.common.util.LazyOptional;
+import net.minecraftforge.items.IItemHandler;
+import net.minecraftforge.items.ItemStackHandler;
+import org.jetbrains.annotations.NotNull;
 import settop.IgnesFatui.Utils.ItemStackKey;
 import settop.IgnesFatui.WispNetwork.*;
 import settop.IgnesFatui.WispNetwork.Resource.ItemResourceManager;
 import settop.IgnesFatui.WispNetwork.Resource.ResourceSource;
+import settop.IgnesFatui.WispNetwork.Tasks.PeriodicTask;
 
 import java.util.HashMap;
 import java.util.Iterator;
 
 public class ProviderUpgrade extends WispNodeUpgrade
 {
-    private class UpdateTask extends Task
+    private class UpdateTask extends PeriodicTask
     {
-        int updatesWithoutChange = 0;
+        protected UpdateTask()
+        {
+            super(fastestUpdateTime);
+        }
 
         @Override
-        public int Tick(int extraTicks)
+        public boolean TryDoWork()
         {
-            if(IsFinished())
-            {
-                return 0;
-            }
-            if(UpdateItemsInNetwork())
-            {
-                updatesWithoutChange = 0;
-                return fastestUpdateTime - extraTicks;
-            }
-            else
-            {
-                ++updatesWithoutChange;
-                //note that sleep multiplier level takes longer to reach as the updates become slower
-                int sleepMultiplier = 1 << (updatesWithoutChange / 4);
-                return Integer.min(fastestUpdateTime * sleepMultiplier, maxUpdateTime) - extraTicks;
-            }
+            return UpdateItemsInNetwork();
         }
     }
 
-    private Container linkedInventory;
+    private IItemHandler linkedInventory;
     private final HashMap<ItemStackKey, ResourceSource<ItemStack>> itemSources = new HashMap<>();
     private UpdateTask updateTask;
-    private int fastestUpdateTime = 5;
-    private int maxUpdateTime = 20 * 5;
+    private final int fastestUpdateTime;
 
     public ProviderUpgrade()
     {
-        this(5, 20 * 5);
+        this(5);
     }
-    public ProviderUpgrade(int fastestUpdateTime, int maxUpdateTime)
+    public ProviderUpgrade(int fastestUpdateTime)
     {
         this.fastestUpdateTime = fastestUpdateTime;
-        this.maxUpdateTime = maxUpdateTime;
     }
 
     @Override
@@ -66,13 +58,48 @@ public class ProviderUpgrade extends WispNodeUpgrade
     @Override
     public void OnParentNodeDisconnectFromNetwork()
     {
-        if(linkedInventory != null)
+        RemoveItemsFromNetwork();
+    }
+
+    @Override
+    public void OnParentNodeLinkedToBlockEntity()
+    {
+        BlockEntity linkedBlockEntity = GetParentNode().GetLinkedBlockEntity();
+
+        LazyOptional<IItemHandler> itemHandlerLazyOpt = linkedBlockEntity.getCapability(ForgeCapabilities.ITEM_HANDLER);
+        IItemHandler itemHandler = itemHandlerLazyOpt.resolve().orElse(null);
+        if(itemHandler == null)
         {
-            RemoveItemsFromNetwork();
+            return;
+        }
+
+        LinkToInventory(itemHandler);
+    }
+
+    @Override
+    public void OnParentNodeUnlinkedFromBlockEntity()
+    {
+        UnlinkFromInventory();
+    }
+
+    @Override
+    public void OnAddToNode(@NotNull WispNode parentNode)
+    {
+        super.OnAddToNode(parentNode);
+        if(parentNode.GetConnectedNetwork() != null && parentNode.GetLinkedBlockEntity() != null)
+        {
+            OnParentNodeLinkedToBlockEntity();
         }
     }
 
-    public void LinkToInventory(Container inventory)
+    @Override
+    public void OnRemoveFromNode(@NotNull WispNode parentNode)
+    {
+        UnlinkFromInventory();
+        super.OnRemoveFromNode(parentNode);
+    }
+
+    public void LinkToInventory(IItemHandler inventory)
     {
         linkedInventory = inventory;
         if(GetParentNode() != null && GetParentNode().GetConnectedNetwork() != null)
@@ -84,10 +111,7 @@ public class ProviderUpgrade extends WispNodeUpgrade
     public void UnlinkFromInventory()
     {
         linkedInventory = null;
-        if(GetParentNode() != null && GetParentNode().GetConnectedNetwork() != null)
-        {
-            RemoveItemsFromNetwork();
-        }
+        RemoveItemsFromNetwork();
     }
 
     private void AddItemsToNetwork()
@@ -96,10 +120,10 @@ public class ProviderUpgrade extends WispNodeUpgrade
         updateTask = new UpdateTask();
         network.AddTask(updateTask);
 
-        final int numSlots = linkedInventory.getContainerSize();
+        final int numSlots = linkedInventory.getSlots();
         for(int i = 0; i < numSlots; ++i)
         {
-            ItemStack slotStack = linkedInventory.getItem(i);
+            ItemStack slotStack = linkedInventory.getStackInSlot(i);
             if(slotStack.isEmpty())
             {
                 continue;
@@ -118,7 +142,10 @@ public class ProviderUpgrade extends WispNodeUpgrade
 
     private void RemoveItemsFromNetwork()
     {
-        updateTask.SetSuccessful();
+        if(updateTask != null)
+        {
+            updateTask.SetSuccessful();
+        }
 
         itemSources.forEach((k, v)->v.SetInvalid());
         itemSources.clear();
@@ -127,10 +154,10 @@ public class ProviderUpgrade extends WispNodeUpgrade
     private boolean UpdateItemsInNetwork()
     {
         ItemResourceManager itemResourceManager = GetParentNode().GetConnectedNetwork().GetItemResourceManager();
-        final int numSlots = linkedInventory.getContainerSize();
+        final int numSlots = linkedInventory.getSlots();
         for(int i = 0; i < numSlots; ++i)
         {
-            ItemStack slotStack = linkedInventory.getItem(i);
+            ItemStack slotStack = linkedInventory.getStackInSlot(i);
             if (slotStack.isEmpty())
             {
                 continue;
