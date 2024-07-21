@@ -6,11 +6,14 @@ import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.world.SimpleContainer;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
+import net.minecraft.world.level.material.Fluids;
+import net.minecraftforge.fluids.FluidStack;
 import net.minecraftforge.gametest.GameTestHolder;
 import net.minecraftforge.items.ItemStackHandler;
 import org.jetbrains.annotations.NotNull;
 import settop.IgnesFatui.IgnesFatui;
 import settop.IgnesFatui.WispNetwork.Resource.ResourceManager;
+import settop.IgnesFatui.WispNetwork.Resource.ResourceSink;
 import settop.IgnesFatui.WispNetwork.Resource.ResourceSource;
 import settop.IgnesFatui.WispNetwork.Upgrades.ProviderUpgrade;
 import settop.IgnesFatui.WispNetwork.WispNetwork;
@@ -192,7 +195,7 @@ public class WispNetworkTester
         helper.assertValueEqual(node2Upgrade.GetParentNode(), node2, "Node2Upgrade parent node");
         helper.assertTrue(node2Upgrade.IsActive(), "Expected node2Upgrade to be active");
 
-        ResourceManager<ItemStack> resourceManager = wispNetwork.GetResourceManager(ItemStack.class);
+        ResourceManager<ItemStack> resourceManager = wispNetwork.GetResourcesManager().GetResourceManager(ItemStack.class);
 
         ResourceSource<ItemStack> oakLogSource = resourceManager.FindBestSourceMatchingStack(Items.OAK_LOG.getDefaultInstance(), 0);
         ResourceSource<ItemStack> ironBlockSource = resourceManager.FindBestSourceMatchingStack(Items.IRON_BLOCK.getDefaultInstance(), 0);

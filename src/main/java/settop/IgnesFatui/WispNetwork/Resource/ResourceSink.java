@@ -24,8 +24,8 @@ public abstract class ResourceSink<T> extends Invalidable
     abstract public boolean CanInsert(T stack);
 
     //returns the reservation or null is no reservation was made
-    //abstract public Reservation ReserveInsert(T stack);
-    //abstract public T Insert(Reservation reservation, T stack);
+    //abstract public Reservation ReserveInsert(T stackKey);
+    //abstract public T Insert(Reservation reservation, T stackKey);
     //abstract public WispInteractionNodeBase GetAttachedInteractionNode();
     //abstract public Direction GetInsertDirection();
 }

@@ -1,6 +1,20 @@
 package settop.IgnesFatui.WispNetwork.Resource;
 
-public interface ResourceFilter<T>
+import org.jetbrains.annotations.NotNull;
+
+public abstract class ResourceFilter<T>
 {
-    boolean Matches(T resource);
+    private final Class<?> stackClass;
+
+    protected ResourceFilter(Class<?> stackClass)
+    {
+        this.stackClass = stackClass;
+    }
+
+    public Class<?> GetStackClass()
+    {
+        return stackClass;
+    }
+
+    public abstract boolean Matches(@NotNull T resource);
 }

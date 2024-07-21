@@ -13,6 +13,7 @@ import java.util.function.Function;
 import org.jetbrains.annotations.NotNull;
 import settop.IgnesFatui.WispNetwork.Resource.ItemResourceManager;
 import settop.IgnesFatui.WispNetwork.Resource.ResourceManager;
+import settop.IgnesFatui.WispNetwork.Resource.ResourcesManager;
 
 public class WispNetwork
 {
@@ -20,8 +21,7 @@ public class WispNetwork
     private final TaskManager taskManager = new TaskManager();
     private final HashSet<WispNode> nodes = new HashSet<>();
 
-    private final ItemResourceManager itemResourceManager;
-    private final HashMap<Class<?>, ResourceManager<?>> resourceManagers;
+    private final ResourcesManager resourcesManager = new ResourcesManager();
 
     public WispNetwork(ResourceKey<Level> dimension, BlockPos pos)
     {
@@ -35,10 +35,6 @@ public class WispNetwork
     private WispNetwork()
     {
         this.rootNode = null;
-        this.itemResourceManager = new ItemResourceManager();
-        this.resourceManagers = new HashMap<>();
-
-        this.resourceManagers.put(ItemStack.class, this.itemResourceManager);
     }
 
     //public BlockPos GetClosestPos(BlockPos inPos)
@@ -303,26 +299,9 @@ public class WispNetwork
         taskManager.AddTask(task);
     }
 
-    public ItemResourceManager GetItemResourceManager()
+    public ResourcesManager GetResourcesManager()
     {
-        return itemResourceManager;
-    }
-
-    public <T> ResourceManager<T> GetResourceManager(Class<T> stackClass)
-    {
-        ResourceManager<?> resourceManager = resourceManagers.get(stackClass);
-        if(resourceManager == null)
-        {
-            return null;
-        }
-        try
-        {
-            return (ResourceManager<T>) resourceManager;
-        }
-        catch (ClassCastException ignored)
-        {
-            return null;
-        }
+        return resourcesManager;
     }
 
     float CalculateTravelCostWithoutSpeed(WispNode from, WispNode to)

@@ -287,24 +287,24 @@ public abstract class WispContainerMenuBase extends AbstractContainerMenu
 
             if (rawStack.isEmpty())
             {
-                // If the raw stack has completely moved out of the slot, set the slot to the empty stack
+                // If the raw stackKey has completely moved out of the slot, set the slot to the empty stackKey
                 quickMovedSlot.set(ItemStack.EMPTY);
             }
             else
             {
-                // Otherwise, notify the slot that the stack count has changed
+                // Otherwise, notify the slot that the stackKey count has changed
                 quickMovedSlot.setChanged();
             }
 
             if (rawStack.getCount() == quickMovedStack.getCount())
             {
-                // If the raw stack was not able to be moved to another slot, no longer quick move
+                // If the raw stackKey was not able to be moved to another slot, no longer quick move
                 return ItemStack.EMPTY;
             }
             quickMovedSlot.onTake(player, rawStack);
         }
 
-        return quickMovedStack; // Return the slot stack
+        return quickMovedStack; // Return the slot stackKey
     }
 
     public boolean mouseScrolled(int slotID, double mouseX, double mouseY, double delta)

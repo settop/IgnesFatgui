@@ -5,9 +5,8 @@ import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraftforge.common.capabilities.ForgeCapabilities;
 import net.minecraftforge.common.util.LazyOptional;
 import net.minecraftforge.items.IItemHandler;
-import net.minecraftforge.items.ItemStackHandler;
 import org.jetbrains.annotations.NotNull;
-import settop.IgnesFatui.Utils.ItemStackKey;
+import settop.IgnesFatui.WispNetwork.Resource.ItemStackKey;
 import settop.IgnesFatui.WispNetwork.*;
 import settop.IgnesFatui.WispNetwork.Resource.ItemResourceManager;
 import settop.IgnesFatui.WispNetwork.Resource.ResourceSource;
@@ -132,11 +131,11 @@ public class ProviderUpgrade extends WispNodeUpgrade
             ResourceSource<ItemStack> itemStackSource = itemSources.computeIfAbsent(key, k -> new ResourceSource<ItemStack>(0, 0));
             itemStackSource.AccumulateNumAvailable(slotStack.getCount());
         }
-        ItemResourceManager itemResourceManager = network.GetItemResourceManager();
+        ItemResourceManager itemResourceManager = network.GetResourcesManager().GetItemResourceManager();
         itemSources.forEach((k, v)->
         {
             v.Update();
-            itemResourceManager.AddSource(k.stack(), v);
+            itemResourceManager.AddSource(k.GetItemStack(), v);
         });
     }
 
@@ -153,7 +152,7 @@ public class ProviderUpgrade extends WispNodeUpgrade
 
     private boolean UpdateItemsInNetwork()
     {
-        ItemResourceManager itemResourceManager = GetParentNode().GetConnectedNetwork().GetItemResourceManager();
+        ItemResourceManager itemResourceManager = GetParentNode().GetConnectedNetwork().GetResourcesManager().GetItemResourceManager();
         final int numSlots = linkedInventory.getSlots();
         for(int i = 0; i < numSlots; ++i)
         {
@@ -166,7 +165,7 @@ public class ProviderUpgrade extends WispNodeUpgrade
             ResourceSource<ItemStack> itemStackSource = itemSources.computeIfAbsent(key, k ->
             {
                 ResourceSource<ItemStack> source = new ResourceSource<ItemStack>(0, 0);
-                itemResourceManager.AddSource(k.stack(), source);
+                itemResourceManager.AddSource(k.GetItemStack(), source);
                 return source;
             });
             itemStackSource.AccumulateNumAvailable(slotStack.getCount());

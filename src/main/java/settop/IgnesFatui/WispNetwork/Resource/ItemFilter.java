@@ -11,7 +11,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Objects;
 
-public class ItemFilter implements ResourceFilter<ItemStack>
+public class ItemFilter extends ResourceFilter<ItemStack>
 {
     public enum eFilterType
     {
@@ -28,6 +28,7 @@ public class ItemFilter implements ResourceFilter<ItemStack>
 
     public ItemFilter(int filterSize)
     {
+        super(ItemStack.class);
         filter = new FakeInventory(filterSize, false)
         {
             @Override

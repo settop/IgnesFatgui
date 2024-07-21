@@ -1,17 +1,16 @@
 package settop.IgnesFatui.WispNetwork.Resource;
 
 import net.minecraft.core.component.DataComponentMap;
-import net.minecraft.core.component.PatchedDataComponentMap;
 import net.minecraft.tags.TagKey;
-import net.minecraft.util.Tuple;
-import net.minecraft.world.Container;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.level.ItemLike;
+import org.apache.commons.lang3.NotImplementedException;
 import org.jetbrains.annotations.NotNull;
+import settop.IgnesFatui.WispNetwork.Resource.Crafting.CraftingPattern;
 
 import javax.annotation.Nullable;
 import java.util.*;
+import java.util.stream.Stream;
 
 public class ItemResourceManager extends ResourceManager<ItemStack>
 {
@@ -21,6 +20,7 @@ public class ItemResourceManager extends ResourceManager<ItemStack>
     private static class ItemSourceCollection
     {
         private final HashMap<DataComponentMap, ResourceSourceCollection<ItemStack>> dataItemCollections = new HashMap<>();
+        private final ArrayList<CraftingPattern> craftingItemPatterns = new ArrayList<>();
         private int itemTotalCount = 0;
 
         public int GetCount()
@@ -30,7 +30,8 @@ public class ItemResourceManager extends ResourceManager<ItemStack>
 
         public void AddSource(DataComponentMap componentMap, ResourceSource<ItemStack> source)
         {
-            dataItemCollections.computeIfAbsent(componentMap, (k)->new ResourceSourceCollection<ItemStack>()).AddSource(source);
+            ResourceSourceCollection<ItemStack> specificItemCollection = dataItemCollections.computeIfAbsent(componentMap, (k)->new ResourceSourceCollection<>());
+            specificItemCollection.AddSource(source);
             itemTotalCount += source.GetNumAvailable();
             source.AddListener(this::SourceChanged);
         }
@@ -39,10 +40,60 @@ public class ItemResourceManager extends ResourceManager<ItemStack>
         {
             itemTotalCount += change;
         }
+
+        public void AddCraftingPattern(@NotNull DataComponentMap dataComponent, CraftingPattern craftingPattern)
+        {
+            craftingItemPatterns.add(craftingPattern);
+            ResourceSourceCollection<ItemStack> specificItemCollection = dataItemCollections.computeIfAbsent(dataComponent, (k)->new ResourceSourceCollection<>());
+            specificItemCollection.AddCraftingPattern(craftingPattern);
+        }
+        public Stream<CraftingPattern> GetMatchingCraftingPatterns(@NotNull DataComponentMap dataComponent)
+        {
+            ResourceSourceCollection<ItemStack> specificItemCollection = dataItemCollections.get(dataComponent);
+            if(specificItemCollection == null)
+            {
+                return Stream.empty();
+            }
+            return specificItemCollection.GetCratingPatterns();
+        }
+        public Stream<CraftingPattern> GetCratingPatterns()
+        {
+            return craftingItemPatterns.stream();
+        }
     }
 
     private final HashMap<Item, ItemSourceCollection> specificItemSource = new HashMap<>();
     private final HashMap<TagKey<Item>, ResourceSourceCollection<ItemStack>> tagItemSource = new HashMap<>();
+
+    public ItemResourceManager()
+    {
+        super(ItemStack.class);
+    }
+
+    public ResourceKey GetStackKey(@NotNull Object stack)
+    {
+        if(IsValidStackForResource(stack))
+        {
+            return new ItemStackKey((ItemStack) stack);
+        }
+        else
+        {
+            return null;
+        }
+    }
+
+    @Override
+    public int GetCountFromStack(Object obj)
+    {
+        if(obj instanceof ItemStack itemStack)
+        {
+            return itemStack.getCount();
+        }
+        else
+        {
+            return 0;
+        }
+    }
 
     @Override
     public void AddSink(@NotNull ResourceSink<ItemStack> sink)
@@ -234,7 +285,11 @@ public class ItemResourceManager extends ResourceManager<ItemStack>
     @Override
     public @Nullable ResourceSource<ItemStack> FindBestSourceMatchingFilter(@NotNull ResourceFilter<ItemStack> filter, int minPriority)
     {
-        if(filter instanceof ItemFilter itemFilter)
+        if(filter instanceof ItemOnlyFilter itemFilter)
+        {
+            return FindBestSourceMatchingItem(itemFilter.GetItem(), minPriority);
+        }
+        else if(filter instanceof ItemFilter itemFilter)
         {
             if(itemFilter.IsWhitelistEnabled())
             {
@@ -298,6 +353,7 @@ public class ItemResourceManager extends ResourceManager<ItemStack>
         return bestSource;
     }
 
+    @Override
     public int CountMatchingStacks(@NotNull ItemStack stack)
     {
         ItemSourceCollection itemSourceCollection = specificItemSource.get(stack.getItem());
@@ -311,5 +367,75 @@ public class ItemResourceManager extends ResourceManager<ItemStack>
             return 0;
         }
         return sourceCollection.GetCount();
+    }
+
+    @Override
+    public void AddCraftingPattern(CraftingPattern craftingPattern)
+    {
+        for(Iterator<CraftingPattern.Entry> it = craftingPattern.GetResults().iterator(); it.hasNext();)
+        {
+            CraftingPattern.Entry result = it.next();
+            if(result.stackKey().GetStackClass() != ItemStack.class)
+            {
+                continue;
+            }
+            ItemStack itemStack = (ItemStack)result.stackKey().GetStack();
+
+            ItemSourceCollection itemSourceCollection = specificItemSource.computeIfAbsent(itemStack.getItem(), (k)->new ItemSourceCollection());
+            itemSourceCollection.AddCraftingPattern(itemStack.getComponents(), craftingPattern);
+        }
+    }
+
+    public Stream<CraftingPattern> GetMatchingCraftingPatterns(@NotNull Item item)
+    {
+        ItemSourceCollection itemSourceCollection = specificItemSource.get(item);
+        if(itemSourceCollection == null)
+        {
+            return Stream.empty();
+        }
+        return itemSourceCollection.GetCratingPatterns();
+    }
+
+    @Override
+    public @NotNull Stream<CraftingPattern> GetMatchingCraftingPatterns(@NotNull ItemStack stack)
+    {
+        ItemSourceCollection itemSourceCollection = specificItemSource.get(stack.getItem());
+        if(itemSourceCollection == null)
+        {
+            return Stream.empty();
+        }
+        return itemSourceCollection.GetMatchingCraftingPatterns(stack.getComponents());
+    }
+
+    @Override
+    public @NotNull Stream<CraftingPattern> GetMatchingCraftingPatterns(@NotNull ResourceFilter<ItemStack> filter)
+    {
+        if(filter instanceof ItemOnlyFilter itemFilter)
+        {
+            return GetMatchingCraftingPatterns(itemFilter.GetItem());
+        }
+        else if(filter instanceof ItemFilter itemFilter)
+        {
+            throw new NotImplementedException("GetMatchingCraftingPatterns with a filter only supports ItemOnlyFilter currently");
+        }
+
+        return specificItemSource.entrySet().stream().flatMap((itemEntry)->
+        {
+            Item item = itemEntry.getKey();
+            ItemSourceCollection itemSourceCollection = itemEntry.getValue();
+            return itemSourceCollection.dataItemCollections.entrySet().stream().flatMap((dataEntry)->
+            {
+                ItemStack testItemStack = item.getDefaultInstance().copy();
+                testItemStack.applyComponents(dataEntry.getKey());
+                if(filter.Matches(testItemStack))
+                {
+                    return dataEntry.getValue().GetCratingPatterns();
+                }
+                else
+                {
+                    return Stream.empty();
+                }
+            });
+        });
     }
 }
