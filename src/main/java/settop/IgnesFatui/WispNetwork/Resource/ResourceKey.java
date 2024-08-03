@@ -17,4 +17,9 @@ public abstract class ResourceKey
     }
 
     public abstract Object GetStack();
+
+    @Override
+    public abstract int hashCode();
+    @Override
+    public abstract boolean equals(Object obj);
 }

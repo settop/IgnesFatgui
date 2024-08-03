@@ -18,10 +18,6 @@ public class CraftingPattern
                     min <= max &&
                     max >= 1;
         }
-        public boolean IsSimple()
-        {
-            return min == max;
-        }
     }
     public static final ArrayList<Entry> EMPTY_ENTRIES = new ArrayList<>();
 
@@ -50,13 +46,5 @@ public class CraftingPattern
                 ingredients.stream().allMatch(Entry::IsValid) &&
                 results.stream().allMatch(Entry::IsValid) &&
                 byproducts.stream().allMatch(Entry::IsValid);
-    }
-
-    public boolean IsSimple()
-    {
-        return results.size() == 1 &&
-                byproducts.isEmpty() &&
-                results.stream().allMatch(Entry::IsSimple) &&
-                ingredients.stream().allMatch(Entry::IsSimple);
     }
 }
