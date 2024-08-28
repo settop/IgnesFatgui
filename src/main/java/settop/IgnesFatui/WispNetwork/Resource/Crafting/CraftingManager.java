@@ -1,61 +1,158 @@
 package settop.IgnesFatui.WispNetwork.Resource.Crafting;
 
-import com.google.common.collect.HashMultimap;
 import net.minecraft.world.item.ItemStack;
-import org.apache.commons.lang3.NotImplementedException;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+import settop.IgnesFatui.IgnesFatui;
+import settop.IgnesFatui.Utils.Utils;
 import settop.IgnesFatui.WispNetwork.Resource.ResourceKey;
 import settop.IgnesFatui.WispNetwork.Resource.ResourceManager;
 import settop.IgnesFatui.WispNetwork.Resource.ResourcesManager;
 
 import java.util.*;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 public class CraftingManager
 {
     private record CraftResult(int minCrafts, float expectedCrafts, int maxCrafts, ArrayList<CraftingPattern.Entry> ingredients, CraftingPattern.Entry resultLeftover, ArrayList<CraftingPattern.Entry> remainders) {}
     private record CraftingPatternCached(CraftingPattern pattern, PatternCacheType type, ResourceKey targetResourceKey, ArrayList<ResourceKey> allRemainders, ArrayList<ResourceKey> loopedRemainders) {}
-    public record CraftStep(CraftingPattern pattern, int count){};
-    private static class AdvancedCraftStep
-    {
-        public final CraftingPatternCached patternCached;
-        public final ResourceKey targetResource;
-        public final int craftCount;
-        public final ArrayList<AdvancedCraftStep> childCraftSteps = new ArrayList<>();
-
-        public AdvancedCraftStep(CraftingPatternCached patternCached, ResourceKey targetResource, int craftCount)
-        {
-            this.patternCached = patternCached;
-            this.targetResource = targetResource;
-            this.craftCount = craftCount;
-        }
-
-        public AdvancedCraftStep()
-        {
-            this.patternCached = null;
-            this.targetResource = null;
-            this.craftCount = 0;
-        }
-    }
     private static class CraftScore
     {
-        public int craftCount = 0;
-        public float byproductScore = 0;
+        private int craftCount = 0;
+        private int craftBatchCount = 0;
+        private float byproductScore = 0;
         public static Comparator<CraftScore> SCORE_COMPARATOR = (l, r) ->
         {
+            //prioritise the least number of crafts
+            //then followed by the least number of craft batches
+            //finally, the least remainder
             int c = Integer.compare(l.craftCount, r.craftCount);
+            if(c != 0)
+            {
+                return c;
+            }
+            c = Integer.compare(l.craftBatchCount, r.craftBatchCount);
             if(c != 0)
             {
                 return c;
             }
             return Float.compare(l.byproductScore, r.byproductScore);
         };
+
+        @Override
+        public boolean equals(Object obj)
+        {
+            if(obj instanceof CraftScore otherScore)
+            {
+                return craftCount == otherScore.craftCount &&
+                        craftBatchCount == otherScore.craftBatchCount &&
+                        byproductScore == otherScore.byproductScore;
+            }
+            return false;
+        }
+
+        public void AddCraftBatch(int numCrafts)
+        {
+            craftCount += numCrafts;
+            craftBatchCount += 1;
+        }
+
+        public void Add(CraftScore otherCraftScore)
+        {
+            craftCount += otherCraftScore.craftCount;
+            craftBatchCount += otherCraftScore.craftBatchCount;
+            byproductScore += otherCraftScore.byproductScore;
+        }
+
+        public CraftScore Clone()
+        {
+            CraftScore newScore = new CraftScore();
+            newScore.craftCount = craftCount;
+            newScore.craftBatchCount = craftBatchCount;
+            newScore.byproductScore = byproductScore;
+            return newScore;
+        }
+    }
+
+    private static class AdvancedCraftSequence
+    {
+        public final ArrayList<AdvancedCraftStep> craftSteps = new ArrayList<>();
+        public final CraftBuilder simpleCraftBuilder;
+        public final CraftScore totalCraftScore;
+        public boolean finished = false;
+        public boolean failed = false;
+
+        private AdvancedCraftSequence(@NotNull CraftBuilder simpleCraftBuilder, @NotNull CraftScore totalCraftScore)
+        {
+            this.simpleCraftBuilder = simpleCraftBuilder;
+            this.totalCraftScore = totalCraftScore;
+        }
+
+        public AdvancedCraftSequence Clone()
+        {
+            AdvancedCraftSequence newSequence = new AdvancedCraftSequence(simpleCraftBuilder.Clone(), totalCraftScore.Clone());
+            newSequence.finished = finished;
+            newSequence.failed = failed;
+            newSequence.craftSteps.ensureCapacity(craftSteps.size());
+            for(AdvancedCraftStep step : craftSteps)
+            {
+                newSequence.craftSteps.add(step.Clone());
+            }
+            return newSequence;
+        }
+    }
+
+    //ToDo: Split this into two classes with a base class, a craft step and a request step
+    private static class AdvancedCraftStep
+    {
+        public final CraftingPatternCached patternCached;
+        public final int numCrafts;
+        public final ResourceKey targetResource;
+        public int requiredCount;
+        public boolean craftingOnly;
+
+        public AdvancedCraftStep(@NotNull ResourceKey targetResource, int requiredCount, boolean craftingOnly)
+        {
+            this.patternCached = null;
+            this.numCrafts = 0;
+            this.targetResource = targetResource;
+            this.requiredCount = requiredCount;
+            this.craftingOnly = craftingOnly;
+        }
+
+        public AdvancedCraftStep(@NotNull ResourceKey targetResource, CraftingPatternCached craftingPattern, int numCrafts)
+        {
+            this.patternCached = craftingPattern;
+            this.numCrafts = numCrafts;
+            this.targetResource = targetResource;
+            this.requiredCount = 0;
+            this.craftingOnly = true;
+        }
+
+        public boolean CanBeExpanded()
+        {
+            return patternCached == null && requiredCount > 0;
+        }
+
+        public AdvancedCraftStep Clone()
+        {
+            if(CanBeExpanded())
+            {
+                return new AdvancedCraftStep(targetResource, requiredCount, craftingOnly);
+            }
+            else
+            {
+                return this;
+            }
+        }
     }
 
     private static class CraftResource
     {
         int inventoryCount = 0;
-        int numCrafts = 0;
+        int numSimpleCrafts = 0;
         int craftedCount = 0;
         int remainingCount = 0;
         int consumedCount = 0;
@@ -65,11 +162,16 @@ public class CraftingManager
             return inventoryCount + craftedCount + remainingCount - consumedCount;
         }
 
+        int GetInventoryRequestedCount()
+        {
+            return consumedCount - craftedCount - remainingCount;
+        }
+
         CraftResource Clone()
         {
             CraftResource clone = new CraftResource();
             clone.inventoryCount = inventoryCount;
-            clone.numCrafts = numCrafts;
+            clone.numSimpleCrafts = numSimpleCrafts;
             clone.craftedCount = craftedCount;
             clone.remainingCount = remainingCount;
             clone.consumedCount = consumedCount;
@@ -115,26 +217,25 @@ public class CraftingManager
     }
     enum PatternCacheType
     {
-        NO_PATTERN(false, false),
-        IS_SIMPLE(false, false),//a simple craft, ie can be computed in a single batch
-        IS_SIMPLE_WTH_REMAINDER(true, false),//the craft itself is simple, but it has remainders
-        IS_ADVANCED(true, true);//a more complex craft, that might need to be ordered to loop it's remainders back into itself
+        NO_PATTERN( false),
+        IS_SIMPLE( false),//a simple craft, ie can be computed in a single batch
+        IS_ADVANCED( true),//a more complex craft, that might need to be ordered to loop its remainders back into itself
+        HAS_MULTIPLE( true),//there are multiple recipes to craft this item
+        INGREDIENTS_HAS_MULTIPLE( true);//this crafting recipe has an ingredient that has multiple crafts
 
-        private final boolean hasRemainder;
         private final boolean isAdvanced;
 
-        PatternCacheType(boolean hasRemainder, boolean isAdvanced)
+        PatternCacheType(boolean isAdvanced)
         {
-            this.hasRemainder = hasRemainder;
             this.isAdvanced = isAdvanced;
         }
 
-        public boolean HasRemainder() { return hasRemainder; }
         public boolean IsAdvanced() { return isAdvanced; }
     }
 
     private final ResourcesManager resourcesManager;
     private final HashMap<ResourceKey, CraftingPatternCached> patternCache = new HashMap<>();
+    private final HashMap<ResourceKey, ArrayList<CraftingPatternCached>> multiPatternCache = new HashMap<>();
     public CraftingManager(ResourcesManager resourcesManager)
     {
         this.resourcesManager = resourcesManager;
@@ -182,15 +283,18 @@ public class CraftingManager
         else if(!simpleCraftCache.type().IsAdvanced())
         {
             CraftBuilder craftBuilder = new CraftBuilder();
-            if (TrySimpleCraft(craftBuilder, stack, count))
+            if (TrySimpleCraft(craftBuilder, null, stack, count))
             {
                 return Optional.of(ReconstructSimpleCraftSteps(craftBuilder));
             }
         }
         else
         {
-            CraftBuilder craftBuilder = new CraftBuilder();
-            BuildAdvanceCraft(craftBuilder, stack, count);
+            AdvancedCraftSequence craftSequence = BuildAdvanceCraft(stack, count);
+            if(craftSequence != null)
+            {
+                return Optional.of(ReconstructSimpleCraftSteps(craftSequence));
+            }
         }
 
         return Optional.empty();
@@ -213,55 +317,160 @@ public class CraftingManager
         }
 
         Stream<CraftingPattern> craftingPatterns = resourceManager.GetGenericMatchingCraftingPatterns(resource);
-        CraftingPattern selectedPattern = null;
+        CraftingPatternCached firstPatternCache = null;
+        ArrayList<CraftingPatternCached> allPatterns = null;
+        HashSet<ResourceKey> allRemainders = null;
         for(Iterator<CraftingPattern> it = craftingPatterns.iterator(); it.hasNext();)
         {
-            if(selectedPattern == null)
+            if(firstPatternCache == null)
             {
-                selectedPattern = it.next();
+                firstPatternCache = CreatePatternCacheFromPattern(it.next(), resource);
             }
             else
             {
                 //more than one pattern for this resource
-                //ToDo: Handle multiple crafts for a recipe, perhaps use a hashmultimap
-                CraftingPatternCached cache = new CraftingPatternCached(null, PatternCacheType.NO_PATTERN, resource, null, null);
-                patternCache.put(resource, cache);
-                return cache;
+                if(allPatterns == null)
+                {
+                    allPatterns = new ArrayList<>(2);
+                    allPatterns.add(firstPatternCache);
+                    if(firstPatternCache.allRemainders != null)
+                    {
+                        allRemainders = new HashSet<>(firstPatternCache.allRemainders);
+                    }
+                }
+
+                CraftingPatternCached cache = CreatePatternCacheFromPattern(it.next(), resource);
+                if(cache.allRemainders != null)
+                {
+                    if(allRemainders == null)
+                    {
+                        allRemainders = new HashSet<>();
+                    }
+                    allRemainders.addAll(cache.allRemainders);
+                }
+
+                boolean added = false;
+                for(int i = 0; i < allPatterns.size(); ++i)
+                {
+                    CraftingPattern.PatternComparisonResult comparison = allPatterns.get(i).pattern().CompareTo(cache.pattern());
+                    switch (comparison)
+                    {
+                        case Superior:
+                        case Same:
+                            //don't add this
+                            added = true;
+                            break;
+                        case Inferior:
+                            //replace this entry as it's inferior to the new cache pattern
+                            if(!added)
+                            {
+                                allPatterns.set(i, cache);
+                            }
+                            else
+                            {
+                                allPatterns.remove(i);
+                                --i;
+                            }
+                            added = true;
+                            break;
+                        case Incomparable:
+                            break;
+                    }
+                }
+
+                if(!added)
+                {
+                    allPatterns.add(cache);
+                }
             }
         }
-        if(selectedPattern == null)
+        if(allPatterns != null && allPatterns.size() == 1)
+        {
+            firstPatternCache = allPatterns.getFirst();
+            allPatterns = null;
+        }
+
+        if(allPatterns != null)
+        {
+            ArrayList<ResourceKey> allRemaindersList = allRemainders != null ? new ArrayList<>(allRemainders) : null;
+            CraftingPatternCached cache = new CraftingPatternCached(null, PatternCacheType.HAS_MULTIPLE, resource, allRemaindersList, null);
+            patternCache.put(resource, cache);
+            multiPatternCache.put(resource, allPatterns);
+            return cache;
+        }
+        else if(firstPatternCache != null)
+        {
+            patternCache.put(resource, firstPatternCache);
+            return firstPatternCache;
+        }
+        else
         {
             CraftingPatternCached cache = new CraftingPatternCached(null, PatternCacheType.NO_PATTERN, resource, null, null);
             patternCache.put(resource, cache);
             return cache;
         }
+    }
 
+    private CraftingPatternCached CreatePatternCacheFromPattern(@NotNull CraftingPattern pattern, @NotNull ResourceKey resource)
+    {
         HashSet<ResourceKey> remainders = new HashSet<>();
-        for(Iterator<CraftingPattern.Entry> it = selectedPattern.GetIngredients().iterator(); it.hasNext();)
+        boolean anIngredientHasMultiple = false;
+        for(Iterator<CraftingPattern.Entry> it = pattern.GetIngredients().iterator(); it.hasNext();)
         {
-            CraftingPatternCached ingredientRecipe = GetCraftingPattern(it.next().stackKey());
-            if(ingredientRecipe.type.HasRemainder())
+            ResourceKey ingredient = it.next().stackKey();
+            CraftingPatternCached ingredientRecipe = GetCraftingPattern(ingredient);
+            switch (ingredientRecipe.type)
             {
-                remainders.addAll(ingredientRecipe.allRemainders());
+                case NO_PATTERN:
+                case IS_SIMPLE:
+                case IS_ADVANCED:
+                    if(ingredientRecipe.allRemainders() != null)
+                    {
+                        for(ResourceKey remainder : ingredientRecipe.allRemainders())
+                        {
+                            if(!remainder.equals(resource))
+                            {
+                                remainders.add(remainder);
+                            }
+                        }
+                    }
+                    break;
+                case HAS_MULTIPLE:
+                case INGREDIENTS_HAS_MULTIPLE:
+                    anIngredientHasMultiple = true;
+                    if(ingredientRecipe.allRemainders() != null)
+                    {
+                        for(ResourceKey remainder : ingredientRecipe.allRemainders())
+                        {
+                            if(!remainder.equals(resource))
+                            {
+                                remainders.add(remainder);
+                            }
+                        }
+                    }
+                    break;
             }
         }
 
-        selectedPattern.GetResults().map(CraftingPattern.Entry::stackKey).filter(resourceKey ->!resourceKey.equals(resource)).forEach(remainders::add);
-        selectedPattern.GetByproducts().map(CraftingPattern.Entry::stackKey).forEach(remainders::add);
-
-        if(remainders.isEmpty())
+        for(Iterator<CraftingPattern.Entry> it = pattern.GetIngredients().iterator(); it.hasNext();)
         {
-            CraftingPatternCached cache = new CraftingPatternCached(selectedPattern, PatternCacheType.IS_SIMPLE, resource, null, null);
-            patternCache.put(resource, cache);
-            return cache;
+            remainders.remove(it.next().stackKey());
+        }
+
+        pattern.GetResults().map(CraftingPattern.Entry::stackKey).filter(resourceKey ->!resourceKey.equals(resource)).forEach(remainders::add);
+        pattern.GetByproducts().map(CraftingPattern.Entry::stackKey).forEach(remainders::add);
+
+        if(remainders.isEmpty() && !anIngredientHasMultiple)
+        {
+            return new CraftingPatternCached(pattern, PatternCacheType.IS_SIMPLE, resource, null, null);
         }
         else
         {
             //check to see if any crafts need to use one of the remainders
             ArrayList<CraftingPattern> patternsToCheck = new ArrayList<>();
             HashSet<CraftingPattern> checkedPatterns = new HashSet<>();
-            patternsToCheck.add(selectedPattern);
-            checkedPatterns.add(selectedPattern);
+            patternsToCheck.add(pattern);
+            checkedPatterns.add(pattern);
 
             HashSet<ResourceKey> loopedRemainders = new HashSet<>();
             while(!patternsToCheck.isEmpty())
@@ -272,7 +481,17 @@ public class CraftingManager
                 patternToCheck.GetIngredients().forEach((ingredient)->
                 {
                     CraftingPatternCached ingredientRecipe = GetCraftingPattern(ingredient.stackKey());
-                    if(ingredientRecipe.pattern() != null)
+                    if(ingredientRecipe.type == PatternCacheType.HAS_MULTIPLE)
+                    {
+                        for(CraftingPatternCached subPattern : multiPatternCache.get(ingredient.stackKey()))
+                        {
+                            if(checkedPatterns.add(subPattern.pattern()))
+                            {
+                                patternsToCheck.add(subPattern.pattern());
+                            }
+                        }
+                    }
+                    else if(ingredientRecipe.type != PatternCacheType.NO_PATTERN)
                     {
                         if(checkedPatterns.add(ingredientRecipe.pattern()))
                         {
@@ -281,31 +500,34 @@ public class CraftingManager
                     }
                 });
             }
-            CraftingPatternCached cache;
             if(loopedRemainders.isEmpty())
             {
-                cache = new CraftingPatternCached(selectedPattern, PatternCacheType.IS_SIMPLE_WTH_REMAINDER, resource, new ArrayList<>(remainders), null);
+                return new CraftingPatternCached(pattern, anIngredientHasMultiple ? PatternCacheType.INGREDIENTS_HAS_MULTIPLE : PatternCacheType.IS_SIMPLE, resource, new ArrayList<>(remainders), null);
             }
             else
             {
-                cache = new CraftingPatternCached(selectedPattern, PatternCacheType.IS_ADVANCED, resource, new ArrayList<>(remainders), new ArrayList<>(loopedRemainders));
+                return new CraftingPatternCached(pattern, PatternCacheType.IS_ADVANCED, resource, new ArrayList<>(remainders), new ArrayList<>(loopedRemainders));
             }
-            patternCache.put(resource, cache);
-            return cache;
         }
     }
 
     //modifies simpleCraftBuilder even if it fails
-    private boolean TrySimpleCraft(@NotNull CraftBuilder craftBuilder, @NotNull ResourceKey stack, int count)
+    private boolean TrySimpleCraft(@NotNull CraftBuilder craftBuilder, @Nullable CraftScore craftScore, @NotNull ResourceKey stack, int count)
     {
         CraftingPatternCached simpleCraftCache = GetCraftingPattern(stack);
-        if(simpleCraftCache.type.IsAdvanced())
+        return TrySimpleCraft(craftBuilder, craftScore, simpleCraftCache, count);
+    }
+
+    //modifies simpleCraftBuilder even if it fails
+    private boolean TrySimpleCraft(@NotNull CraftBuilder craftBuilder, @Nullable CraftScore craftScore, @NotNull CraftingPatternCached simpleCraftCache, int count)
+    {
+        if(simpleCraftCache.type.IsAdvanced() || simpleCraftCache.type == PatternCacheType.NO_PATTERN)
         {
             return false;
         }
         //a simple recipe so all max==min
 
-        CraftResult craftResult = GetIngredientsForCraftCount(simpleCraftCache.pattern, stack, count);
+        CraftResult craftResult = GetIngredientsForCraftCount(simpleCraftCache.pattern, simpleCraftCache.targetResourceKey, count);
         if(craftResult == null)
         {
             return false;
@@ -321,54 +543,163 @@ public class CraftingManager
             }
 
             int countToCraft = ingredient.max() - numAvailable;
-            if(!TrySimpleCraft(craftBuilder, ingredient.stackKey(), countToCraft))
+            if(!TrySimpleCraft(craftBuilder, craftScore, ingredient.stackKey(), countToCraft))
             {
                 return false;
             }
             craftResource.consumedCount += ingredient.max();
         }
-        CraftResource resultCraftResource = craftBuilder.GetCraftResource(stack);
-        resultCraftResource.craftedCount += count;
-        assert craftResult.remainders.isEmpty();
-        //since this is a simple craft the only possible remainder is excess from the craft
-        resultCraftResource.craftedCount += craftResult.resultLeftover.max();
-        resultCraftResource.numCrafts += craftResult.maxCrafts;
+        CraftResource resultCraftResource = craftBuilder.GetCraftResource(simpleCraftCache.targetResourceKey);
+        resultCraftResource.craftedCount += count + craftResult.resultLeftover.max();
+        resultCraftResource.numSimpleCrafts += craftResult.maxCrafts;
+        for(CraftingPattern.Entry remainder : craftResult.remainders)
+        {
+            CraftResource remainderCraftResource = craftBuilder.GetCraftResource(remainder.stackKey());
+            remainderCraftResource.remainingCount += remainder.max();
+        }
+        if(craftScore != null)
+        {
+            craftScore.AddCraftBatch(craftResult.maxCrafts);
+        }
 
         return true;
     }
 
-    private AdvancedCraftStep BuildAdvanceCraft(@NotNull CraftBuilder craftBuilder, @NotNull ResourceKey targetStackKey, int count)
+    //returns either ArrayList<AdvancedCraftSequence> or AdvancedCraftSequence
+    private @NotNull Object GetCraftSteps(@NotNull AdvancedCraftSequence sourceSequence)
     {
-        CraftingPatternCached craftingPatternCache = GetCraftingPattern(targetStackKey);
-        if(craftingPatternCache.type == PatternCacheType.NO_PATTERN)
+        //find the next step that needs expanding
+        int expandingStepIndex = 0;
+        for(; expandingStepIndex < sourceSequence.craftSteps.size(); ++expandingStepIndex)
         {
-            return null;
+            AdvancedCraftStep step = sourceSequence.craftSteps.get(expandingStepIndex);
+            if(!step.CanBeExpanded())
+            {
+                continue;
+            }
+            if(!step.craftingOnly)
+            {
+                //first try to request the required amount from the existing
+                CraftResource targetCraftResource = sourceSequence.simpleCraftBuilder.GetCraftResource(step.targetResource);
+                int numAvailable = targetCraftResource.GetNumAvailable();
+                if(step.requiredCount <= numAvailable)
+                {
+                    //we can just request all of what we need now, so do that
+                    targetCraftResource.consumedCount += step.requiredCount;
+                    sourceSequence.craftSteps.remove(expandingStepIndex);
+                    --expandingStepIndex;
+                    continue;
+                }
+                else if(numAvailable > 0)
+                {
+                    step.requiredCount -= numAvailable;
+                    targetCraftResource.consumedCount += numAvailable;
+                }
+                step.craftingOnly = true;
+            }
+            break;
         }
 
-        if(!craftingPatternCache.type.IsAdvanced())
+        if(expandingStepIndex >= sourceSequence.craftSteps.size())
         {
-            if(TrySimpleCraft(craftBuilder, targetStackKey, count))
+            sourceSequence.finished = true;
+            sourceSequence.failed = false;
+            return sourceSequence;
+        }
+
+        AdvancedCraftStep expandingStep = sourceSequence.craftSteps.get(expandingStepIndex);
+
+        CraftingPatternCached craftingPatternCache = GetCraftingPattern(expandingStep.targetResource);
+        if(craftingPatternCache.type == PatternCacheType.NO_PATTERN)
+        {
+            sourceSequence.finished = true;
+            sourceSequence.failed = true;
+            return sourceSequence;
+        }
+
+        return GetCraftStepsFromPattern(sourceSequence, expandingStepIndex, craftingPatternCache);
+    }
+
+    //returns either ArrayList<AdvancedCraftSequence> or AdvancedCraftSequence
+    private @NotNull Object GetCraftStepsFromPattern(@NotNull AdvancedCraftSequence sourceSequence, int expandingStepIndex, CraftingPatternCached pattern)
+    {
+        if(pattern.type == PatternCacheType.HAS_MULTIPLE)
+        {
+            ArrayList<AdvancedCraftSequence> results = new ArrayList<>();
+            ArrayList<CraftingPatternCached> subPatterns = multiPatternCache.get(pattern.targetResourceKey);
+            int numSubPatterns = subPatterns.size();
+            for(int i = 0 ; i < numSubPatterns; ++i)
             {
-                return new AdvancedCraftStep();
+                AdvancedCraftSequence subSourceSequence = i + 1 == numSubPatterns ? sourceSequence : sourceSequence.Clone();
+                Object result = GetCraftStepsFromPattern(subSourceSequence, expandingStepIndex, subPatterns.get(i));
+                if(result instanceof AdvancedCraftSequence subSequence)
+                {
+                    boolean hasFailed = subSequence.finished && subSequence.failed;
+                    if(!hasFailed)
+                    {
+                        results.add(subSequence);
+                    }
+                }
+                else if(result instanceof ArrayList<?> subSequences)
+                {
+                    results.addAll((ArrayList<AdvancedCraftSequence>)subSequences);
+                }
+            }
+
+            if(results.isEmpty())
+            {
+                sourceSequence.finished = true;
+                sourceSequence.failed = true;
+                return sourceSequence;
+            }
+            else if(results.size() == 1)
+            {
+                return results.getFirst();
             }
             else
             {
-                return null;
+                return results;
             }
         }
 
+        AdvancedCraftStep expandingStep = sourceSequence.craftSteps.get(expandingStepIndex);
+
+        if(!pattern.type.IsAdvanced())
+        {
+            CraftResource targetCraftResource = sourceSequence.simpleCraftBuilder.GetCraftResource(pattern.targetResourceKey);
+            int initialSimpleCraftCount = targetCraftResource.numSimpleCrafts;
+            boolean simpleCraftSuccess = TrySimpleCraft(sourceSequence.simpleCraftBuilder, sourceSequence.totalCraftScore, pattern, expandingStep.requiredCount);
+            if(simpleCraftSuccess)
+            {
+                //can't cache the crafts inside the simple craft count, since this is technically not a simple craft, it's a part of an advanced craft
+                //so can't cache it as a simple craft as it will confuse the craft reconstruction step later
+                int numCraftsDone = targetCraftResource.numSimpleCrafts - initialSimpleCraftCount;
+                targetCraftResource.numSimpleCrafts = initialSimpleCraftCount;
+                targetCraftResource.consumedCount += expandingStep.requiredCount;
+                sourceSequence.craftSteps.set(expandingStepIndex, new AdvancedCraftStep(pattern.targetResourceKey, pattern, numCraftsDone));
+            }
+            else
+            {
+                sourceSequence.finished = true;
+                sourceSequence.failed = true;
+            }
+            return sourceSequence;
+        }
+
+        CraftResult craftResult = GetIngredientsForCraftCount(pattern.pattern(), expandingStep.targetResource, 1);
+        assert craftResult != null;
 
         ArrayList<CraftingPatternCached> ingredientCrafts = new ArrayList<>();
-        int advancedIngredientCount = 0;
+        int ingredientsWithRemainderCount = 0;
 
-        for(Iterator<CraftingPattern.Entry> it = craftingPatternCache.pattern().GetIngredients().iterator(); it.hasNext();)
+        for(Iterator<CraftingPattern.Entry> it = pattern.pattern().GetIngredients().iterator(); it.hasNext();)
         {
             CraftingPattern.Entry ingredient = it.next();
             CraftingPatternCached ingredientCraftingPatternCache = GetCraftingPattern(ingredient.stackKey());
-            if(ingredientCraftingPatternCache.type().HasRemainder())
+            if(ingredientCraftingPatternCache.allRemainders != null)
             {
                 ingredientCrafts.addFirst(ingredientCraftingPatternCache);
-                advancedIngredientCount += 1;
+                ingredientsWithRemainderCount += 1;
             }
             else
             {
@@ -376,57 +707,143 @@ public class CraftingManager
             }
         }
 
-        if(advancedIngredientCount <= 1)
+        if(ingredientsWithRemainderCount <= 1)
         {
-            AdvancedCraftStep rootCraftStep = new AdvancedCraftStep();
-            CraftResult craftResult = GetIngredientsForCraftCount(craftingPatternCache.pattern(), targetStackKey, 1);
-            assert craftResult != null;
-            int craftedCount = 1 + craftResult.resultLeftover().max();
-            for(int c = 0; c < count; c += craftedCount)
-            {
-                for(CraftingPatternCached ingredientCraft : ingredientCrafts)
-                {
-                    int expectedCount = craftResult.ingredients().stream()
-                            .filter((ingredient)->ingredient.stackKey().equals(ingredientCraft.targetResourceKey))
-                            .map(CraftingPattern.Entry::max)
-                            .findFirst().orElse(0);
-                    CraftResource ingredientResource = craftBuilder.GetCraftResource(ingredientCraft.targetResourceKey());
-                    int numAvailable = ingredientResource.GetNumAvailable();
-                    if(expectedCount <= numAvailable)
-                    {
-                        ingredientResource.consumedCount += expectedCount;
-                    }
-                    else
-                    {
-                        int numToCraft = expectedCount - numAvailable;
-                        AdvancedCraftStep ingredientCraftStep = BuildAdvanceCraft(craftBuilder, ingredientCraft.targetResourceKey, numToCraft);
-                        if(ingredientCraftStep == null)
-                        {
-                            return null;
-                        }
-                        if(ingredientCraftStep.craftCount > 0 || !ingredientCraftStep.childCraftSteps.isEmpty())
-                        {
-                             rootCraftStep.childCraftSteps.add(ingredientCraftStep);
-                        }
-                        ingredientResource.consumedCount += expectedCount;
-                    }
-                }
-                CraftResource resultResource = craftBuilder.GetCraftResource(craftResult.resultLeftover.stackKey());
-                resultResource.numCrafts += 1;
-                resultResource.craftedCount += craftedCount;
-
-                for(CraftingPattern.Entry remainder : craftResult.remainders)
-                {
-                    CraftResource remainderResource = craftBuilder.GetCraftResource(remainder.stackKey());
-                    remainderResource.remainingCount += remainder.max();
-                }
-            }
-            return rootCraftStep;
+            ExpandCraftStepWithOrder(sourceSequence, expandingStepIndex, pattern, ingredientCrafts, craftResult);
+            return sourceSequence;
         }
         else
         {
-            throw new NotImplementedException();
+            if(ingredientsWithRemainderCount >= 5)
+            {
+                //don't go above 4
+                IgnesFatui.LOGGER.warn("Craft ingredient ordering was restricted to 4 for pattern {}", pattern.targetResourceKey.toString());
+                ingredientsWithRemainderCount = 4;
+            }
+            final int numOrderings = IntStream.rangeClosed(2, ingredientsWithRemainderCount).reduce(1, (a, b) -> a * b);
+            ArrayList<AdvancedCraftSequence> allCraftSteps = new ArrayList<>(numOrderings);
+            AtomicInteger step = new AtomicInteger();
+            //can reduce the number of permutations by checking to see if any of them actually potentially care about ordering(ie check remainders are inputs of the other crafts)
+            Utils.IteratePermutations(ingredientCrafts, ingredientsWithRemainderCount, permutedIngredients->
+            {
+                boolean finalStep = step.incrementAndGet() == numOrderings;
+                AdvancedCraftSequence permutationSequence = finalStep ? sourceSequence : sourceSequence.Clone();
+                ExpandCraftStepWithOrder(permutationSequence, expandingStepIndex, pattern, permutedIngredients, craftResult);
+                boolean failed = permutationSequence.finished && permutationSequence.failed;
+                if(!failed)
+                {
+                    allCraftSteps.add(permutationSequence);
+                }
+            });
+            return allCraftSteps;
         }
+    }
+
+    private void ExpandCraftStepWithOrder(@NotNull AdvancedCraftSequence sourceSequence, int expandingStepIndex, CraftingPatternCached pattern, ArrayList<CraftingPatternCached> ingredientCrafts, CraftResult craftResult)
+    {
+        AdvancedCraftStep expandingStep = sourceSequence.craftSteps.get(expandingStepIndex);
+        int craftedCountPerCraft = 1 + craftResult.resultLeftover().max();
+
+        while(expandingStep.requiredCount > 0)
+        {
+            boolean anyAdvanceIngredientCrafts = false;
+            for(CraftingPatternCached ingredientCraft : ingredientCrafts)
+            {
+                int expectedCount = craftResult.ingredients().stream()
+                        .filter((ingredient) -> ingredient.stackKey().equals(ingredientCraft.targetResourceKey))
+                        .map(CraftingPattern.Entry::max)
+                        .findFirst().orElse(0);
+                CraftResource ingredientResource = sourceSequence.simpleCraftBuilder.GetCraftResource(ingredientCraft.targetResourceKey());
+                int numAvailable = ingredientResource.GetNumAvailable();
+                if(expectedCount <= numAvailable)
+                {
+                    ingredientResource.consumedCount += expectedCount;
+                    continue;
+                }
+                int numIngredientsToCraft = expectedCount - numAvailable;
+                //ToDo: Check if craft can be affected by previous crafts, ie check remainders with input tree, instead of assuming anyAdvanceIngredientCrafts needs to be handled
+                if(ingredientCraft.type.IsAdvanced() || anyAdvanceIngredientCrafts)
+                {
+                    anyAdvanceIngredientCrafts = true;
+                    AdvancedCraftStep craftStep = new AdvancedCraftStep(ingredientCraft.targetResourceKey, numIngredientsToCraft, false);
+                    sourceSequence.craftSteps.add(expandingStepIndex, craftStep);
+                    expandingStepIndex += 1;
+                    //consume the rest last after the craft is done so that we don't go negative with the numAvailable
+                    ingredientResource.consumedCount += numAvailable;
+                }
+                else
+                {
+                    //if it's a simple craft, do it now
+                    if(!TrySimpleCraft(sourceSequence.simpleCraftBuilder, sourceSequence.totalCraftScore, ingredientCraft.targetResourceKey(), numIngredientsToCraft))
+                    {
+                        sourceSequence.finished = true;
+                        sourceSequence.failed = true;
+                        return;
+                    }
+                    ingredientResource.consumedCount += expectedCount;
+                }
+            }
+
+            sourceSequence.totalCraftScore.AddCraftBatch(craftResult.maxCrafts());
+            CraftResource targetCraftResource = sourceSequence.simpleCraftBuilder.GetCraftResource(expandingStep.targetResource);
+            targetCraftResource.craftedCount += craftedCountPerCraft;
+            targetCraftResource.consumedCount += Integer.min(craftedCountPerCraft, expandingStep.requiredCount);
+            expandingStep.requiredCount -= craftedCountPerCraft;
+            for(CraftingPattern.Entry remainder : craftResult.remainders())
+            {
+                sourceSequence.simpleCraftBuilder.GetCraftResource(remainder.stackKey()).remainingCount += remainder.max();
+            }
+            AdvancedCraftStep craftStep = new AdvancedCraftStep(expandingStep.targetResource, pattern, craftResult.maxCrafts());
+            sourceSequence.craftSteps.add(expandingStepIndex, craftStep);
+            expandingStepIndex += 1;
+            if(anyAdvanceIngredientCrafts)
+            {
+                return;
+            }
+        }
+        //we should now have completed this craft, so can remove it
+        sourceSequence.craftSteps.remove(expandingStepIndex);
+    }
+
+    private AdvancedCraftSequence BuildAdvanceCraft(@NotNull ResourceKey targetStackKey, int count)
+    {
+        CraftingPatternCached craftingPatternCache = GetCraftingPattern(targetStackKey);
+        if(craftingPatternCache.type == PatternCacheType.NO_PATTERN)
+        {
+            return null;
+        }
+
+        AdvancedCraftSequence initialSequence = new AdvancedCraftSequence(new CraftBuilder(), new CraftScore());
+        initialSequence.craftSteps.add(new AdvancedCraftStep(targetStackKey, count, true));
+
+        Comparator<CraftScore> scoreComparator = CraftScore.SCORE_COMPARATOR;
+        PriorityQueue<AdvancedCraftSequence> craftSequence = new PriorityQueue<>((l, r)->scoreComparator.compare(l.totalCraftScore, r.totalCraftScore));
+        craftSequence.add(initialSequence);
+
+        while (!craftSequence.isEmpty())
+        {
+            AdvancedCraftSequence currentSequence = craftSequence.poll();
+            if(currentSequence.finished)
+            {
+                assert !currentSequence.failed;
+                return currentSequence;
+            }
+            Object nextSequences = GetCraftSteps(currentSequence);
+            if(nextSequences instanceof AdvancedCraftSequence nextSequence)
+            {
+                boolean stepFailed = nextSequence.finished && nextSequence.failed;
+                if(!stepFailed)
+                {
+                    craftSequence.add(nextSequence);
+                }
+            }
+            else if(nextSequences instanceof ArrayList<?> nextSequencesArray)
+            {
+                craftSequence.addAll((ArrayList<AdvancedCraftSequence>)nextSequencesArray);
+            }
+        }
+        //we failed
+        return null;
     }
 
     private CraftResult GetIngredientsForCraftCount(CraftingPattern pattern, ResourceKey targetResult, int count)
@@ -508,23 +925,21 @@ public class CraftingManager
         return new CraftResult(minCrafts, expectedCrafts, maxCrafts, ingredients, leftoverEntry, remainders);
     }
 
-    private SimpleCraftExecutor ReconstructSimpleCraftSteps(CraftBuilder craftBuilder)
+    private void FillSimpleCraftData(@NotNull CraftBuilder craftBuilder, @NotNull ArrayList<CraftExecutor.Ingredient> ingredients, @NotNull ArrayList<CraftExecutor.Craft> crafts )
     {
-        ArrayList<SimpleCraftExecutor.Ingredient> ingredients = new ArrayList<>();
-        ArrayList<SimpleCraftExecutor.Craft> crafts = new ArrayList<>();
         for(var entry : craftBuilder.craftResources.entrySet())
         {
-            int requestFromInventoryCount = entry.getValue().consumedCount - entry.getValue().craftedCount;
+            int requestFromInventoryCount = entry.getValue().GetInventoryRequestedCount();
             if(requestFromInventoryCount > 0)
             {
                 ingredients.add(new CraftExecutor.Ingredient(entry.getKey(), requestFromInventoryCount));
             }
 
-            if(entry.getValue().numCrafts > 0)
+            if(entry.getValue().numSimpleCrafts > 0)
             {
                 CraftingPatternCached simpleCraftCache = GetCraftingPattern(entry.getKey());
                 assert simpleCraftCache.type == PatternCacheType.IS_SIMPLE;
-                crafts.add(new SimpleCraftExecutor.Craft(simpleCraftCache.pattern, entry.getValue().numCrafts));
+                crafts.add(new CraftExecutor.Craft(simpleCraftCache.pattern, entry.getValue().numSimpleCrafts));
             }
         }
 
@@ -536,7 +951,7 @@ public class CraftingManager
                 boolean allIngredientCraftsAdded = crafts.get(j).pattern().GetIngredients().allMatch((ingredient)->
                 {
                      CraftResource craftResource = craftBuilder.craftResources.get(ingredient.stackKey());
-                     if(craftResource == null || craftResource.numCrafts == 0)
+                     if(craftResource == null || craftResource.numSimpleCrafts == 0)
                      {
                          return true;
                      }
@@ -559,7 +974,50 @@ public class CraftingManager
                 }
             }
         }
+    }
 
-        return new SimpleCraftExecutor(ingredients, crafts);
+    private CraftExecutor ReconstructSimpleCraftSteps(CraftBuilder craftBuilder)
+    {
+        ArrayList<CraftExecutor.Ingredient> ingredients = new ArrayList<>();
+        ArrayList<CraftExecutor.Craft> crafts = new ArrayList<>();
+
+        FillSimpleCraftData(craftBuilder, ingredients, crafts);
+
+        return new CraftExecutor(ingredients, crafts);
+    }
+
+    private CraftExecutor ReconstructSimpleCraftSteps(AdvancedCraftSequence craftSequence)
+    {
+        ArrayList<CraftExecutor.Ingredient> ingredients = new ArrayList<>();
+        ArrayList<CraftExecutor.Craft> crafts = new ArrayList<>();
+
+        FillSimpleCraftData(craftSequence.simpleCraftBuilder, ingredients, crafts);
+
+        for(AdvancedCraftStep craftStep : craftSequence.craftSteps)
+        {
+            if(craftStep.patternCached == null)
+            {
+                continue;
+            }
+            boolean updatedExistingEntry = false;
+            for(int i = 0; i < crafts.size(); ++i)
+            {
+                CraftExecutor.Craft advancedCraft = crafts.get(i);
+                if(advancedCraft.pattern() == craftStep.patternCached.pattern())
+                {
+                    CraftExecutor.Craft updatedCraft = new CraftExecutor.Craft(advancedCraft.pattern(), advancedCraft.craftCount() + craftStep.numCrafts);
+                    crafts.set(i, updatedCraft);
+                    updatedExistingEntry = true;
+                    break;
+                }
+            }
+            if(!updatedExistingEntry)
+            {
+                CraftExecutor.Craft newCraft = new CraftExecutor.Craft(craftStep.patternCached.pattern(), craftStep.numCrafts);
+                crafts.add(newCraft);
+            }
+        }
+
+        return new CraftExecutor(ingredients, crafts);
     }
 }
